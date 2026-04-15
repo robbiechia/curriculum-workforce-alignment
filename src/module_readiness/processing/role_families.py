@@ -27,9 +27,23 @@ def _ssoc_prefix(code: str, width: int) -> str:
 
 
 
+def _normalize_match_text(text: str) -> str:
+    normalized = re.sub(r"[^a-z0-9\s\+\#]", " ", str(text or "").lower())
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return f" {normalized} " if normalized else " "
+
+
+def _first_matching_keyword(text: str, keywords: List[str]) -> str:
+    normalized_text = _normalize_match_text(text)
+    for keyword in keywords:
+        candidate = _normalize_match_text(str(keyword).strip())
+        if candidate.strip() and candidate in normalized_text:
+            return str(keyword).strip()
+    return ""
+
+
 def _keyword_match(text: str, keywords: List[str]) -> bool:
-    lowered = text.lower()
-    return any(keyword.lower() in lowered for keyword in keywords)
+    return bool(_first_matching_keyword(text, keywords))
 
 
 
@@ -68,31 +82,53 @@ def _row_text_blob(row: pd.Series) -> str:
     ).lower()
 
 
-def _cluster_rule_matches(row: pd.Series, text_blob: str, rule: Dict[str, object]) -> bool:
+def _match_cluster_rule(row: pd.Series, text_blob: str, rule: Dict[str, object]) -> str | None:
     ssoc4_filter = {str(code).strip() for code in rule.get("ssoc4", []) if str(code).strip()}
     if ssoc4_filter and str(row.get("ssoc_4d", "")).strip() not in ssoc4_filter:
-        return False
+        return None
 
     ssoc5_filter = {str(code).strip() for code in rule.get("ssoc5", []) if str(code).strip()}
     if ssoc5_filter and str(row.get("ssoc_5d", "")).strip() not in ssoc5_filter:
-        return False
+        return None
 
     categories = {str(cat).strip() for cat in rule.get("categories", []) if str(cat).strip()}
     if categories and str(row.get("primary_category", "")).strip() not in categories:
-        return False
+        return None
+
+    title_blob = " ".join(
+        part
+        for part in [
+            str(row.get("title", "")).strip(),
+            str(row.get("title_clean", "")).strip(),
+        ]
+        if part
+    )
+    title_keywords = [
+        str(keyword).strip().lower()
+        for keyword in rule.get("title_keywords", [])
+        if str(keyword).strip()
+    ]
+    title_match = ""
+    if title_keywords:
+        title_match = _first_matching_keyword(title_blob, title_keywords)
+        if not title_match:
+            return None
 
     keywords = [str(keyword).strip().lower() for keyword in rule.get("keywords", []) if str(keyword).strip()]
-    if keywords and not any(keyword in text_blob for keyword in keywords):
-        return False
+    if not keywords:
+        return title_match
 
-    return True
+    matched_keyword = _first_matching_keyword(text_blob, keywords)
+    if not matched_keyword:
+        return None
+    return title_match or matched_keyword
 
 
 def _assign_role_cluster(
     row: pd.Series,
     cluster_rules: Dict[str, object],
     legacy_family: str,
-) -> Tuple[str, str, str]:
+) -> Tuple[str, str, str, str, str]:
     ssoc5_exact = cluster_rules.get("ssoc5_exact_map", {})
     ssoc4_exact = cluster_rules.get("ssoc4_exact_map", {})
     broad_map = cluster_rules.get("cluster_broad_family_map", {})
@@ -104,37 +140,46 @@ def _assign_role_cluster(
 
     cluster = ""
     source = ""
+    match_detail = ""
+    matched_keyword = ""
 
     if isinstance(ssoc5_exact, dict) and ssoc_5d in ssoc5_exact:
         cluster = str(ssoc5_exact[ssoc_5d]).strip()
         source = "ssoc5_exact"
+        match_detail = f"ssoc5_exact:{ssoc_5d}"
     elif isinstance(ssoc4_exact, dict) and ssoc_4d in ssoc4_exact:
         cluster = str(ssoc4_exact[ssoc_4d]).strip()
         source = "ssoc4_exact"
+        match_detail = f"ssoc4_exact:{ssoc_4d}"
     elif isinstance(split_rules, list):
-        for rule in split_rules:
+        for rule_index, rule in enumerate(split_rules, start=1):
             if not isinstance(rule, dict):
                 continue
-            if not _cluster_rule_matches(row, text_blob, rule):
+            rule_keyword = _match_cluster_rule(row, text_blob, rule)
+            if rule_keyword is None:
                 continue
             cluster = str(rule.get("cluster", "")).strip()
             if cluster:
                 source = "split_rule"
+                match_detail = f"split_rule[{rule_index}]"
+                matched_keyword = rule_keyword
                 break
 
     if not cluster and legacy_family and not legacy_family.isdigit() and legacy_family != "Other":
         cluster = legacy_family
         source = "legacy_family"
+        match_detail = "legacy_family"
 
     if not cluster:
         cluster = "Other"
         source = "fallback"
+        match_detail = "fallback"
 
     broad_family = str(broad_map.get(cluster, "Other")).strip() if isinstance(broad_map, dict) else "Other"
     if not broad_family:
         broad_family = "Other"
 
-    return cluster, source, broad_family
+    return cluster, source, broad_family, match_detail, matched_keyword
 
 
 
@@ -219,8 +264,8 @@ def assign_role_families(
 
     # The fallback order here matters: prefer official SSOC structure first, then use
     # keyword/category rules only when SSOC is unavailable or malformed.
-    families: List[str] = []
-    family_source: List[str] = []
+    ssoc_families: List[str] = []
+    ssoc_family_sources: List[str] = []
     ssoc_5d_codes: List[str] = []
     ssoc_4d_codes: List[str] = []
 
@@ -232,8 +277,8 @@ def assign_role_families(
         # Primary backbone for this iteration:
         # use SSOC-5 for fine-grained evidence and SSOC-4 for final grouping label.
         if ssoc_5d and ssoc_4d:
-            families.append(ssoc_4d)
-            family_source.append("ssoc4_from_ssoc5")
+            ssoc_families.append(ssoc_4d)
+            ssoc_family_sources.append("ssoc4_from_ssoc5")
             ssoc_5d_codes.append(ssoc_5d)
             ssoc_4d_codes.append(ssoc_4d)
             continue
@@ -247,8 +292,8 @@ def assign_role_families(
             skills = []
 
         if isinstance(ssoc_map, dict) and ssoc_2d in ssoc_map:
-            families.append(str(ssoc_map[ssoc_2d]))
-            family_source.append("ssoc2_map")
+            ssoc_families.append(str(ssoc_map[ssoc_2d]))
+            ssoc_family_sources.append("ssoc2_map")
             ssoc_5d_codes.append("")
             ssoc_4d_codes.append("")
             continue
@@ -268,27 +313,27 @@ def assign_role_families(
                     break
 
         if matched:
-            families.append(matched)
-            family_source.append("keyword")
+            ssoc_families.append(matched)
+            ssoc_family_sources.append("keyword")
             ssoc_5d_codes.append("")
             ssoc_4d_codes.append("")
             continue
 
         if isinstance(category_map, dict) and category in category_map:
-            families.append(str(category_map[category]))
-            family_source.append("category")
+            ssoc_families.append(str(category_map[category]))
+            ssoc_family_sources.append("category")
             ssoc_5d_codes.append("")
             ssoc_4d_codes.append("")
             continue
 
-        families.append("Other")
-        family_source.append("fallback")
+        ssoc_families.append("Other")
+        ssoc_family_sources.append("fallback")
         ssoc_5d_codes.append("")
         ssoc_4d_codes.append("")
 
     out = jobs.copy()
-    out["role_family"] = families
-    out["role_family_source"] = family_source
+    out["ssoc_role_family"] = ssoc_families
+    out["ssoc_role_family_source"] = ssoc_family_sources
     out["ssoc_5d"] = ssoc_5d_codes
     out["ssoc_4d"] = ssoc_4d_codes
 
@@ -308,56 +353,58 @@ def assign_role_families(
         out.loc[miss4, "ssoc_4d_name"] = out.loc[miss4, "ssoc_4d"].map(ssoc_4d_fallback_map).fillna("")
 
     def _role_display_name(row: pd.Series) -> str:
-        source = str(row.get("role_family_source", ""))
+        source = str(row.get("ssoc_role_family_source", ""))
         if source in {"ssoc4_from_ssoc5", "ssoc2_map"}:
             name = str(row.get("ssoc_4d_name", "")).strip()
-            return name if name else str(row.get("role_family", ""))
-        return str(row.get("role_family", ""))
+            return name if name else str(row.get("ssoc_role_family", ""))
+        return str(row.get("ssoc_role_family", ""))
 
-    out["ssoc_role_family"] = out["role_family"]
     out["ssoc_role_family_name"] = out.apply(_role_display_name, axis=1)
-    out["ssoc_role_family_source"] = out["role_family_source"]
 
-    role_clusters: List[str] = []
-    role_cluster_sources: List[str] = []
+    role_families: List[str] = []
+    role_family_sources: List[str] = []
+    role_family_match_details: List[str] = []
+    role_family_matched_keywords: List[str] = []
     broad_families: List[str] = []
     cluster_rules = cluster_rules or {}
 
     for _, row in out.iterrows():
-        # Role clusters are the curated labels used by module scoring and the UI. They
-        # are designed to be easier to interpret than raw SSOC codes.
-        cluster, cluster_source, broad_family = _assign_role_cluster(
+        # The curated role family is the main analytical label used downstream. It is
+        # easier to interpret than the raw SSOC family stored separately above.
+        family, family_source, broad_family, match_detail, matched_keyword = _assign_role_cluster(
             row,
             cluster_rules,
             legacy_family=str(row.get("ssoc_role_family", "")),
         )
-        role_clusters.append(cluster)
-        role_cluster_sources.append(cluster_source)
+        role_families.append(family)
+        role_family_sources.append(family_source)
+        role_family_match_details.append(match_detail)
+        role_family_matched_keywords.append(matched_keyword)
         broad_families.append(broad_family)
 
-    out["role_cluster"] = role_clusters
-    out["role_cluster_source"] = role_cluster_sources
+    out["role_family"] = role_families
+    out["role_family_name"] = role_families
+    out["role_family_source"] = role_family_sources
+    out["role_family_match_detail"] = role_family_match_details
+    out["role_family_matched_keyword"] = role_family_matched_keywords
     out["broad_family"] = broad_families
     out["broad_family_name"] = broad_families
 
-    out["role_family"] = out["role_cluster"]
-    out["role_family_name"] = out["role_cluster"]
-    out["role_family_source"] = out["role_cluster_source"]
-
     diagnostics: Dict[str, float | str] = {
         "role_family_unique": float(out["role_family"].nunique()),
-        "role_cluster_unique": float(out["role_cluster"].nunique()),
         "broad_family_unique": float(out["broad_family"].nunique()),
         "role_family_ssoc_rows": float(out["role_family_source"].isin(["ssoc5_exact", "ssoc4_exact"]).sum()),
         "role_family_keyword_rows": float((out["role_family_source"] == "split_rule").sum()),
         "role_family_category_rows": float((out["role_family_source"] == "legacy_family").sum()),
         "role_family_fallback_rows": float((out["role_family_source"] == "fallback").sum()),
+        "ssoc_role_family_unique": float(out["ssoc_role_family"].nunique()),
         "jobs_with_ssoc5_rows": float((out["ssoc_5d"] != "").sum()),
         "jobs_with_ssoc4_rows": float((out["ssoc_4d"] != "").sum()),
         "jobs_unique_ssoc5": float(out.loc[out["ssoc_5d"] != "", "ssoc_5d"].nunique()),
         "jobs_unique_ssoc4": float(out.loc[out["ssoc_4d"] != "", "ssoc_4d"].nunique()),
         "jobs_unique_ssoc5_names": float(out.loc[out["ssoc_5d_name"] != "", "ssoc_5d_name"].nunique()),
         "jobs_unique_ssoc4_names": float(out.loc[out["ssoc_4d_name"] != "", "ssoc_4d_name"].nunique()),
+        "role_family_matched_keyword_rows": float((out["role_family_matched_keyword"] != "").sum()),
         "ssoc4_official_map_size": float(len(ssoc_4d_official)),
         "ssoc5_official_map_size": float(len(ssoc_5d_official)),
     }

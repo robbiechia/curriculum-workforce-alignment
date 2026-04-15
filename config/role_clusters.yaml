@@ -11,6 +11,12 @@
     "Marketing / Communications": "Business",
     "Sales / Business Development": "Business",
     "HR / Talent": "Business",
+    "Civil / Construction / Built Environment": "Engineering",
+    "Mechanical / M&E / Transport": "Engineering",
+    "Process / Chemical / Environmental": "Engineering",
+    "Industrial / Manufacturing / Quality / Automation": "Engineering",
+    "Electrical / Electronics / Embedded / Semiconductor": "Engineering",
+    "Engineering R&D / Technical Services": "Engineering",
     "Engineering / Manufacturing": "Engineering",
     "Electronics / Embedded / Systems": "Engineering",
     "Operations / Admin": "Business",
@@ -21,16 +27,19 @@
   },
   "ssoc5_exact_map": {
     "12133": "Finance / Risk / Compliance",
-    "12230": "Engineering / Manufacturing",
-    "13291": "Engineering / Manufacturing",
+    "13292": "Industrial / Manufacturing / Quality / Automation",
     "13420": "Social / Healthcare / Community",
     "13441": "Social / Healthcare / Community",
     "14123": "Operations / Admin",
     "21349": "Social / Healthcare / Community",
-    "21451": "Engineering / Manufacturing",
-    "21454": "Engineering / Manufacturing",
-    "21494": "Engineering / Manufacturing",
-    "21632": "Engineering / Manufacturing",
+    "21451": "Process / Chemical / Environmental",
+    "21454": "Process / Chemical / Environmental",
+    "21493": "Industrial / Manufacturing / Quality / Automation",
+    "21494": "Civil / Construction / Built Environment",
+    "21496": "Process / Chemical / Environmental",
+    "21497": "Electrical / Electronics / Embedded / Semiconductor",
+    "21523": "Electrical / Electronics / Embedded / Semiconductor",
+    "21632": "Industrial / Manufacturing / Quality / Automation",
     "21662": "Marketing / Communications",
     "21664": "Business Analysis / Product / Project",
     "23612": "Education / Training",
@@ -40,7 +49,7 @@
     "24362": "Sales / Business Development",
     "26413": "Marketing / Communications",
     "26421": "Marketing / Communications",
-    "31111": "Engineering / Manufacturing",
+    "31111": "Process / Chemical / Environmental",
     "31412": "Social / Healthcare / Community",
     "31711": "Operations / Admin",
     "32120": "Social / Healthcare / Community",
@@ -58,21 +67,23 @@
     "1219": "Operations / Admin",
     "1221": "Sales / Business Development",
     "1222": "Marketing / Communications",
-    "1323": "Engineering / Manufacturing",
+    "1321": "Industrial / Manufacturing / Quality / Automation",
+    "1323": "Civil / Construction / Built Environment",
     "1324": "Operations / Admin",
-    "1329": "Engineering / Manufacturing",
     "1330": "Cloud / Infrastructure / DevOps",
     "1346": "Finance / Risk / Compliance",
     "1412": "Operations / Admin",
     "2122": "Data Science / Analytics",
     "2131": "Social / Healthcare / Community",
-    "2141": "Engineering / Manufacturing",
-    "2142": "Engineering / Manufacturing",
-    "2143": "Engineering / Manufacturing",
-    "2144": "Engineering / Manufacturing",
-    "2145": "Engineering / Manufacturing",
-    "2151": "Electronics / Embedded / Systems",
-    "2161": "Engineering / Manufacturing",
+    "2142": "Civil / Construction / Built Environment",
+    "2143": "Process / Chemical / Environmental",
+    "2144": "Mechanical / M&E / Transport",
+    "2145": "Process / Chemical / Environmental",
+    "2147": "Mechanical / M&E / Transport",
+    "2151": "Electrical / Electronics / Embedded / Semiconductor",
+    "2153": "Electrical / Electronics / Embedded / Semiconductor",
+    "2161": "Civil / Construction / Built Environment",
+    "2162": "Civil / Construction / Built Environment",
     "2171": "Operations / Admin",
     "2211": "Social / Healthcare / Community",
     "2220": "Social / Healthcare / Community",
@@ -103,13 +114,18 @@
     "2611": "Legal / IP",
     "2635": "Social / Healthcare / Community",
     "2642": "Marketing / Communications",
-    "3117": "Engineering / Manufacturing",
-    "3118": "Engineering / Manufacturing",
+    "3112": "Civil / Construction / Built Environment",
+    "3113": "Electrical / Electronics / Embedded / Semiconductor",
+    "3114": "Electrical / Electronics / Embedded / Semiconductor",
+    "3115": "Mechanical / M&E / Transport",
+    "3117": "Industrial / Manufacturing / Quality / Automation",
+    "3118": "Civil / Construction / Built Environment",
+    "3151": "Mechanical / M&E / Transport",
     "3160": "Operations / Admin",
     "3255": "Social / Healthcare / Community",
     "3313": "Accounting / Audit / Tax",
     "3411": "Legal / IP",
-    "3432": "Engineering / Manufacturing",
+    "3432": "Civil / Construction / Built Environment",
     "3512": "Cloud / Infrastructure / DevOps",
     "3620": "Education / Training",
     "3691": "Education / Training",
@@ -120,7 +136,7 @@
     "4323": "Operations / Admin",
     "5131": "Operations / Admin",
     "5242": "Sales / Business Development",
-    "7500": "Engineering / Manufacturing"
+    "7500": "Industrial / Manufacturing / Quality / Automation"
   },
   "split_rules": [
     {
@@ -155,10 +171,26 @@
       "cluster": "AI / ML",
       "ssoc4": [
         "2519",
+        "2141",
         "2149"
       ],
-      "keywords": [
+      "title_keywords": [
         "ai",
+        "machine learning",
+        "ml",
+        "llm",
+        "computer vision",
+        "ai research",
+        "ai product",
+        "ai application",
+        "ai developer",
+        "applied ai",
+        "algorithm engineer",
+        "physical ai",
+        "robotics",
+        "humanoid"
+      ],
+      "keywords": [
         "machine learning",
         "deep learning",
         "llm",
@@ -170,7 +202,9 @@
         "generative ai",
         "model training",
         "algorithm engineer",
-        "physical ai"
+        "physical ai",
+        "robotics",
+        "humanoid"
       ]
     },
     {
@@ -181,10 +215,20 @@
         "3349",
         "2149"
       ],
-      "keywords": [
+      "title_keywords": [
+        "data scientist",
         "data analyst",
         "data analytics",
         "data analysis",
+        "analytics engineer",
+        "data engineer",
+        "business intelligence",
+        "bi analyst",
+        "data visualization",
+        "reporting analyst",
+        "quantitative analyst"
+      ],
+      "keywords": [
         "analytics",
         "power bi",
         "tableau",
@@ -195,7 +239,9 @@
         "pipelines",
         "statistics",
         "statistical",
-        "business intelligence"
+        "business intelligence",
+        "data engineer",
+        "data analysis"
       ]
     },
     {
@@ -203,9 +249,21 @@
       "ssoc4": [
         "2152",
         "2511",
-        "2529",
         "3349",
-        "1330"
+        "2149"
+      ],
+      "title_keywords": [
+        "cloud engineer",
+        "cloud architect",
+        "cloud infrastructure",
+        "devops engineer",
+        "site reliability",
+        "sre",
+        "platform engineer",
+        "network engineer",
+        "infrastructure engineer",
+        "database administrator",
+        "dba"
       ],
       "keywords": [
         "cloud",
@@ -217,13 +275,14 @@
         "ansible",
         "docker",
         "devops",
-        "platform engineer",
         "site reliability",
         "sre",
-        "network engineer",
         "infrastructure",
         "windows server",
-        "dns"
+        "dns",
+        "postgresql",
+        "oracle",
+        "database administrator"
       ]
     },
     {
@@ -231,7 +290,17 @@
       "ssoc4": [
         "2524",
         "2529",
-        "1330"
+        "1330",
+        "2152"
+      ],
+      "title_keywords": [
+        "cyber security",
+        "cybersecurity",
+        "security consultant",
+        "security engineer",
+        "penetration testing",
+        "soc analyst",
+        "security operations"
       ],
       "keywords": [
         "cybersecurity",
@@ -251,7 +320,20 @@
       "ssoc4": [
         "2511",
         "2519",
-        "2152"
+        "2152",
+        "2149"
+      ],
+      "title_keywords": [
+        "software engineer",
+        "software developer",
+        "software development engineer",
+        "application developer",
+        "backend developer",
+        "frontend developer",
+        "full stack",
+        "fullstack",
+        "java developer",
+        "react developer"
       ],
       "keywords": [
         "software engineer",
@@ -271,22 +353,306 @@
       ]
     },
     {
-      "cluster": "Electronics / Embedded / Systems",
+      "cluster": "Electrical / Electronics / Embedded / Semiconductor",
       "ssoc4": [
+        "2141",
         "2152",
         "2149"
+      ],
+      "title_keywords": [
+        "firmware engineer",
+        "electrical engineer",
+        "electrical systems engineer",
+        "embedded engineer",
+        "electronics engineer",
+        "hardware engineer",
+        "semiconductor engineer",
+        "ic design engineer",
+        "project engineer",
+        "system engineer",
+        "systems engineer",
+        "test engineer",
+        "rf engineer",
+        "optics engineer",
+        "photonics engineer",
+        "plc control engineer",
+        "control engineer",
+        "system application engineer",
+        "systems solutions engineer",
+        "technical solutions engineer",
+        "software application engineer",
+        "x ray"
       ],
       "keywords": [
         "firmware",
         "embedded",
+        "electrical",
         "electronics",
         "hardware",
         "pcba",
-        "rf engineer",
-        "system integration",
+        "power",
         "semiconductor",
+        "ic design",
         "ic test",
-        "radio frequency"
+        "rf engineer",
+        "radio frequency",
+        "analog",
+        "mixed signal",
+        "circuit design",
+        "photonics",
+        "optics",
+        "plc",
+        "control engineer",
+        "instrumentation",
+        "security system",
+        "security screening",
+        "elv",
+        "access control",
+        "fire alarm",
+        "x ray",
+        "system application",
+        "technical solutions",
+        "wcan"
+      ]
+    },
+    {
+      "cluster": "Civil / Construction / Built Environment",
+      "ssoc4": [
+        "2149",
+        "2166"
+      ],
+      "title_keywords": [
+        "quantity surveyor",
+        "site engineer",
+        "project engineer",
+        "qa/qc engineer",
+        "civil engineer",
+        "structural engineer",
+        "architectural",
+        "architect",
+        "bim",
+        "drafter",
+        "draftsman",
+        "design coordinator",
+        "resident engineer",
+        "resident technical officer",
+        "interior designer"
+      ],
+      "keywords": [
+        "quantity surveyor",
+        "site engineer",
+        "civil",
+        "structural",
+        "construction",
+        "maincon",
+        "architectural",
+        "bim",
+        "revit",
+        "autocad",
+        "geotechnical",
+        "facade",
+        "interior design",
+        "landed house",
+        "roadwork",
+        "viaduct",
+        "coastal",
+        "tender",
+        "c&s",
+        "resident engineer",
+        "resident technical officer"
+      ]
+    },
+    {
+      "cluster": "Mechanical / M&E / Transport",
+      "ssoc4": [
+        "2149"
+      ],
+      "title_keywords": [
+        "mechanical engineer",
+        "mechanical design engineer",
+        "m&e engineer",
+        "design engineer",
+        "project engineer",
+        "service engineer",
+        "service project engineer",
+        "technical service engineer",
+        "aircon engineer",
+        "bms service engineer",
+        "marine engineer",
+        "mechatronics engineer"
+      ],
+      "keywords": [
+        "mechanical",
+        "m&e",
+        "hvac",
+        "aircon",
+        "air conditioning",
+        "acmv",
+        "chiller",
+        "chillers",
+        "plumbing",
+        "building services",
+        "marine",
+        "shipyard",
+        "transport",
+        "vehicle",
+        "mechatronics",
+        "submarine"
+      ]
+    },
+    {
+      "cluster": "Process / Chemical / Environmental",
+      "ssoc4": [
+        "2149"
+      ],
+      "title_keywords": [
+        "process engineer",
+        "plant engineer",
+        "chemical engineer",
+        "validation engineer",
+        "safety engineer",
+        "environment specialist",
+        "r&d engineer",
+        "research engineer"
+      ],
+      "keywords": [
+        "process",
+        "plant",
+        "chemical",
+        "environmental",
+        "energy engineer",
+        "validation",
+        "pharmaceutical",
+        "pharma",
+        "food",
+        "edible oil",
+        "safety",
+        "material planning",
+        "environment"
+      ]
+    },
+    {
+      "cluster": "Civil / Construction / Built Environment",
+      "ssoc4": [
+        "2149",
+        "1329"
+      ],
+      "keywords": [
+        "civil",
+        "structural",
+        "construction",
+        "maincon",
+        "geotechnical",
+        "roadwork",
+        "viaduct",
+        "coastal",
+        "c&s",
+        "quantity surveyor",
+        "site engineer",
+        "resident engineer",
+        "architectural",
+        "bim",
+        "revit",
+        "facade",
+        "worksite"
+      ]
+    },
+    {
+      "cluster": "Sales / Business Development",
+      "ssoc4": [
+        "2149"
+      ],
+      "title_keywords": [
+        "sales engineer",
+        "proposal engineer",
+        "commercial proposal engineer"
+      ],
+      "keywords": [
+        "sales",
+        "quotation",
+        "quotations",
+        "proposal",
+        "pre sales",
+        "post sales",
+        "customer",
+        "customer relationship",
+        "tender"
+      ]
+    },
+    {
+      "cluster": "Engineering R&D / Technical Services",
+      "ssoc4": [
+        "2149",
+        "2152"
+      ],
+      "title_keywords": [
+        "application engineer",
+        "service engineer",
+        "field service engineer",
+        "research engineer",
+        "research scientist",
+        "research officer",
+        "technical support engineer",
+        "solutions engineer",
+        "technical solutions engineer"
+      ],
+      "keywords": [
+        "application engineer",
+        "service engineer",
+        "field service",
+        "scientific",
+        "analyzer",
+        "technical support",
+        "research",
+        "r&d",
+        "solutions"
+      ]
+    },
+    {
+      "cluster": "Industrial / Manufacturing / Quality / Automation",
+      "ssoc4": [
+        "2141",
+        "2149"
+      ],
+      "keywords": [
+        "manufacturing",
+        "production",
+        "quality assurance",
+        "quality control",
+        "industrial",
+        "automation",
+        "machining",
+        "aerospace",
+        "product engineer",
+        "factory",
+        "process automation",
+        "assembly",
+        "lean manufacturing"
+      ]
+    },
+    {
+      "cluster": "Engineering R&D / Technical Services",
+      "ssoc4": [
+        "1223"
+      ],
+      "title_keywords": [
+        "research engineer",
+        "research scientist",
+        "research officer",
+        "research assistant",
+        "project officer",
+        "research fellow",
+        "firmware engineer"
+      ],
+      "keywords": [
+        "research",
+        "r&d",
+        "signal processing",
+        "sensor",
+        "photonics",
+        "chemical biology",
+        "laboratory",
+        "scientific"
       ]
     },
     {
@@ -389,7 +755,7 @@
       ]
     },
     {
-      "cluster": "Engineering / Manufacturing",
+      "cluster": "Civil / Construction / Built Environment",
       "ssoc4": [
         "2166"
       ],
@@ -397,10 +763,10 @@
         "bim",
         "revit",
         "autocad",
-        "interior designer",
         "architectural",
         "facade",
-        "space planning"
+        "space planning",
+        "interior designer"
       ]
     },
     {
@@ -432,18 +798,55 @@
       ]
     },
     {
-      "cluster": "Engineering / Manufacturing",
-      "ssoc4": [
-        "2149"
+      "cluster": "Civil / Construction / Built Environment",
+      "ssoc5": [
+        "13291"
       ],
       "keywords": [
-        "quantity surveyor",
-        "site engineer",
-        "civil",
         "construction",
-        "marine",
-        "shipyard",
-        "procurement"
+        "worksite",
+        "roadwork",
+        "civil",
+        "coastal"
+      ]
+    },
+    {
+      "cluster": "Process / Chemical / Environmental",
+      "ssoc5": [
+        "13291"
+      ],
+      "keywords": [
+        "chemical",
+        "material planning"
+      ]
+    },
+    {
+      "cluster": "Industrial / Manufacturing / Quality / Automation",
+      "ssoc4": [
+        "2141"
+      ]
+    },
+    {
+      "cluster": "Electrical / Electronics / Embedded / Semiconductor",
+      "ssoc4": [
+        "2152"
+      ],
+      "categories": [
+        "Engineering",
+        "Precision Engineering",
+        "Sciences / Laboratory / R&D"
+      ]
+    },
+    {
+      "cluster": "Engineering R&D / Technical Services",
+      "ssoc5": [
+        "13291"
+      ]
+    },
+    {
+      "cluster": "Engineering R&D / Technical Services",
+      "ssoc4": [
+        "2149"
       ]
     }
   ]

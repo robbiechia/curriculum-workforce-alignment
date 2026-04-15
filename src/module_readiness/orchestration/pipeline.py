@@ -68,8 +68,11 @@ def _build_job_role_map_frame(jobs: pd.DataFrame) -> pd.DataFrame:
     role_cols = [
         "job_id",
         "title",
-        "role_cluster",
-        "role_cluster_source",
+        "role_family",
+        "role_family_name",
+        "role_family_source",
+        "role_family_match_detail",
+        "role_family_matched_keyword",
         "broad_family",
         "ssoc_code",
         "ssoc_4d",
@@ -85,10 +88,7 @@ def _build_job_role_map_frame(jobs: pd.DataFrame) -> pd.DataFrame:
 def _build_jobs_clean_frame(jobs: pd.DataFrame) -> pd.DataFrame:
     return jobs.drop(
         columns=[
-            "role_family",
-            "role_family_name",
             "broad_family_name",
-            "role_family_source",
         ],
         errors="ignore",
     ).copy()

@@ -18,6 +18,9 @@ python -m pip install --upgrade pip
 echo "Installing requirements..."
 python -m pip install -r requirements.txt
 
+echo "Registering src/ on the virtualenv Python path..."
+python scripts/install_src_path.py
+
 echo ""
 echo "Running database setup check..."
 bash src/data_utils/data_setup.sh
