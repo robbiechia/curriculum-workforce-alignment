@@ -31,6 +31,19 @@ def _fmt_tags(values: object) -> str:
     return ", ".join(clean[:8]) if clean else "None highlighted"
 
 
+def _skill_pills(skills: list[str], color: str = "#e8eaf6", text_color: str = "#283593", limit: int = 8) -> str:
+    """Render a list of skills as inline HTML pill badges."""
+    clean = [str(s).strip() for s in skills if str(s).strip()][:limit]
+    if not clean:
+        return '<span style="color:#999;font-size:0.85em">—</span>'
+    pills = "".join(
+        f'<span style="display:inline-block;background:{color};color:{text_color};'
+        f'border-radius:12px;padding:2px 10px;margin:2px 3px;font-size:0.82em">{s}</span>'
+        for s in clean
+    )
+    return pills
+
+
 @st.cache_resource(show_spinner=False)
 def _get_query_backend():
     return load_dashboard_query_backend(output_dir=OUTPUTS_DIR)
@@ -42,7 +55,7 @@ def _get_llm_client() -> OpenAICompatibleLLMClient:
 
 
 def _degree_filter_sidebar(summary: pd.DataFrame) -> tuple[str | None, str | None]:
-    st.sidebar.markdown("## Assistant Settings")
+    st.sidebar.markdown("## Query Settings")
     exp_max = st.sidebar.slider("Max experience (years)", min_value=0, max_value=5, value=2)
     top_jobs = st.sidebar.slider("Retrieved jobs", min_value=3, max_value=10, value=5)
     top_modules = st.sidebar.slider("Retrieved modules", min_value=3, max_value=12, value=8)
@@ -80,56 +93,82 @@ def _degree_filter_sidebar(summary: pd.DataFrame) -> tuple[str | None, str | Non
 
 
 def _render_job_results(jobs: pd.DataFrame) -> None:
-    st.subheader("Top Retrieved Jobs")
+    st.markdown("#### Retrieved Jobs")
     if jobs.empty:
         st.warning("No jobs matched the query.")
         return
 
-    view = jobs[["title", "company"]].copy()
-    view = view.rename(
-        columns={
-            "title": "Job Title",
-            "company": "Company",
-        }
-    )
-    st.dataframe(view, width="stretch", hide_index=True)
+    for i, (_, row) in enumerate(jobs.iterrows()):
+        title = str(row.get("title", ""))
+        company = str(row.get("company", ""))
+        role_family = str(row.get("role_family_name") or row.get("role_family", ""))
+        tech_skills = row.get("technical_skills", [])
+        if not isinstance(tech_skills, list):
+            tech_skills = []
+        soft_skills = row.get("soft_skills", [])
+        if not isinstance(soft_skills, list):
+            soft_skills = []
+        summary = str(row.get("job_summary", ""))
 
-    for _, row in jobs.iterrows():
-        with st.expander(f"{row['title']} · {row['company']}", expanded=False):
-            st.write(row.get("job_summary", ""))
-            st.caption(f"Technical skills: {_fmt_tags(row.get('technical_skills', []))}")
-            st.caption(f"Soft skills: {_fmt_tags(row.get('soft_skills', []))}")
+        with st.expander(f"**{i + 1}. {title}**  —  {company}", expanded=(i == 0)):
+            if role_family:
+                st.markdown(
+                    f'<span style="display:inline-block;background:#E3F2FD;color:#1565C0;'
+                    f'border-radius:12px;padding:2px 10px;font-size:0.82em;margin-bottom:6px">'
+                    f'{role_family}</span>',
+                    unsafe_allow_html=True,
+                )
+            if summary:
+                st.markdown(f'<div style="font-size:0.9em;color:#444;margin:6px 0 10px 0">{summary}</div>', unsafe_allow_html=True)
+            if tech_skills:
+                st.markdown(f'**Technical Skills** {_skill_pills(tech_skills, "#E8EAF6", "#283593")}', unsafe_allow_html=True)
+            if soft_skills:
+                st.markdown(f'**Soft Skills** {_skill_pills(soft_skills, "#F3E5F5", "#6A1B9A")}', unsafe_allow_html=True)
 
 
 def _render_module_results(modules: pd.DataFrame, degree_label: str | None) -> None:
-    st.subheader("Recommended Modules")
+    st.markdown("#### Recommended Modules")
     if degree_label:
-        st.caption(f"Recommendations are restricted to required modules in `{degree_label}`.")
+        st.caption(f"Restricted to required modules in **{degree_label}**.")
     if modules.empty:
         st.warning("No modules met the retrieval threshold for the selected evidence set.")
         return
 
-    view = modules[["module_code", "module_title"]].copy()
-    view = view.rename(
-        columns={
-            "module_code": "Module Code",
-            "module_title": "Module Title",
-        }
-    )
-    st.dataframe(view, width="stretch", hide_index=True)
+    for i, (_, row) in enumerate(modules.iterrows()):
+        code = str(row.get("module_code", ""))
+        title = str(row.get("module_title", ""))
+        summary = str(row.get("module_summary", ""))
+        overlap = row.get("technical_skill_overlap", [])
+        if not isinstance(overlap, list):
+            overlap = []
+        tech_skills = row.get("technical_skills", [])
+        if not isinstance(tech_skills, list):
+            tech_skills = []
+        soft_skills = row.get("soft_skills", [])
+        if not isinstance(soft_skills, list):
+            soft_skills = []
+        matched_count = int(row.get("matched_job_count", 0) or 0)
 
-    for _, row in modules.iterrows():
-        title = f"{row['module_code']} · {row['module_title']}"
-        with st.expander(title, expanded=False):
-            st.write(row.get("module_summary", ""))
-            st.caption(f"Technical skill overlap: {_fmt_tags(row.get('technical_skill_overlap', []))}")
-            st.caption(f"Technical skills: {_fmt_tags(row.get('technical_skills', []))}")
-            st.caption(f"Soft skills: {_fmt_tags(row.get('soft_skills', []))}")
+        with st.expander(f"**{code}** — {title}", expanded=(i == 0)):
+            cols = st.columns([3, 1])
+            with cols[0]:
+                if summary:
+                    st.markdown(f'<div style="font-size:0.9em;color:#444;margin-bottom:8px">{summary}</div>', unsafe_allow_html=True)
+            with cols[1]:
+                if matched_count:
+                    st.metric("Matched Jobs", matched_count)
+            if overlap:
+                st.markdown(f'**Skill Overlap with Jobs** {_skill_pills(overlap, "#E8F5E9", "#1B5E20")}', unsafe_allow_html=True)
+            if tech_skills:
+                st.markdown(f'**Technical Skills** {_skill_pills(tech_skills, "#E8EAF6", "#283593")}', unsafe_allow_html=True)
+            if soft_skills:
+                st.markdown(f'**Soft Skills** {_skill_pills(soft_skills, "#F3E5F5", "#6A1B9A")}', unsafe_allow_html=True)
 
 
 def main() -> None:
     st.set_page_config(
-        page_title="Job Query Assistant — MOE",
+        page_title="Career Query Assistant — MOE",
+        page_icon="🎯",
         layout="wide",
         initial_sidebar_state="expanded",
     )
@@ -138,10 +177,10 @@ def main() -> None:
     client = _get_llm_client()
     degree_id, degree_label = _degree_filter_sidebar(backend.degree_summary)
 
-    st.title("Natural-Language Job Assistant")
+    st.title("🎯 Career Query Assistant")
     st.caption(
         "Type a job or role in natural language. The system retrieves matching early-career job postings, "
-        "finds relevant NUS modules, and generates an officer-facing explanation grounded in those results."
+        "finds relevant NUS modules based on the skills required, and explains the reasoning behind the recommendations. "
     )
     if client.configured:
         st.caption(f"LLM status: {client.provider_label} · model `{client.model}`")
@@ -188,7 +227,8 @@ def main() -> None:
             client=client,
         )
 
-    st.subheader("Explanation")
+    st.markdown("---")
+    st.markdown("### Analysis")
     if explanation.used_fallback:
         st.info("Showing deterministic summary because the LLM call was unavailable.")
         if explanation.error:
@@ -197,7 +237,9 @@ def main() -> None:
         st.caption(f"Generated with {explanation.provider_label} · `{explanation.model}`")
     st.markdown(explanation.markdown)
 
-    left, right = st.columns([1.05, 1.15], gap="large")
+    st.markdown("---")
+    st.markdown("### Retrieved Jobs & Recommended Modules")
+    left, right = st.columns([1, 1], gap="large")
     with left:
         _render_job_results(result.jobs)
     with right:

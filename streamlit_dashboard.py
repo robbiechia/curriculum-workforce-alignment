@@ -2043,7 +2043,8 @@ def _render_module_details(
 
 def main() -> None:
     st.set_page_config(
-        page_title="NUS Curriculum Readiness — MOE",
+        page_title="Curriculum Readiness Dashboard — MOE",
+        page_icon="📊",
         layout="wide",
         initial_sidebar_state="expanded",
     )
@@ -2065,7 +2066,7 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    st.title("NUS Curriculum Readiness Dashboard")
+    st.title("📊 Curriculum Readiness Dashboard")
     st.caption(
         "MOE policy review tool. Analyses how NUS degree curricula prepare graduates "
         "for Singapore's job market using module-to-job alignment scores validated against "
