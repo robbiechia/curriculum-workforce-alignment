@@ -16,7 +16,7 @@ from module_readiness.analysis import build_indicators
 
 class TestAggregation(unittest.TestCase):
     def test_module_summary_uses_ssoc4_fallback_label_when_top_role_is_other(self) -> None:
-        # The summary should stay analytically honest (`top_role_cluster = Other`) while
+        # The summary should stay analytically honest (`top_role_family = Other`) while
         # still exposing a more useful human-facing fallback label.
         jobs = pd.DataFrame(
             {
@@ -69,7 +69,7 @@ class TestAggregation(unittest.TestCase):
         )
 
         summary = result.module_summary.iloc[0]
-        self.assertEqual(summary["top_role_cluster"], "Other")
+        self.assertEqual(summary["top_role_family"], "Other")
         self.assertEqual(summary["top_role_family_name"], "Interior Designers and Decorators")
         self.assertEqual(summary["top_role_family_name_source"], "ssoc4_fallback")
 

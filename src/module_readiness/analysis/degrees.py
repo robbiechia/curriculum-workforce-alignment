@@ -153,7 +153,7 @@ def _degree_module_map_columns() -> list[str]:
         "module_credit",
         "technical_skills",
         "soft_skills",
-        "top_role_cluster",
+        "top_role_family",
         "top_role_family_name",
         "top_role_family_name_source",
         "top_role_score",
@@ -209,12 +209,12 @@ def _summary_meta_frame(module_summary: pd.DataFrame) -> pd.DataFrame:
     summary_meta["module_code"] = summary_meta["module_code"].astype(str).str.strip().str.upper()
 
     rename_map = {
-        "top_role_family": "top_role_cluster",
+        "top_role_cluster": "top_role_family",
     }
     summary_meta = summary_meta.rename(columns={k: v for k, v in rename_map.items() if k in summary_meta.columns})
     cols = [
         "module_code",
-        "top_role_cluster",
+        "top_role_family",
         "top_role_family_name",
         "top_role_family_name_source",
         "top_role_score",
@@ -1075,11 +1075,11 @@ def _build_degree_summary(
         "matched_required_module_count",
         "missing_required_module_count",
         "matched_required_module_share",
-        "top_role_cluster",
-        "top_role_cluster_name",
-        "top_role_cluster_score",
-        "top_role_cluster_best_case",
-        "top_role_cluster_best_case_score",
+        "top_role_family",
+        "top_role_family_name",
+        "top_role_family_score",
+        "top_role_family_best_case",
+        "top_role_family_best_case_score",
         "top_ssoc5",
         "top_ssoc5_name",
         "top_ssoc5_score",
@@ -1133,9 +1133,9 @@ def _build_degree_summary(
                 .head(1)[["degree_id", "role_family", "role_family_name", "degree_role_score"]]
                 .rename(
                     columns={
-                        "role_family": "top_role_cluster",
-                        "role_family_name": "top_role_cluster_name",
-                        "degree_role_score": "top_role_cluster_score",
+                        "role_family": "top_role_family",
+                        "role_family_name": "top_role_family_name",
+                        "degree_role_score": "top_role_family_score",
                     }
                 )
             )
@@ -1148,8 +1148,8 @@ def _build_degree_summary(
                 .head(1)[["degree_id", "role_family", "degree_role_score"]]
                 .rename(
                     columns={
-                        "role_family": "top_role_cluster_best_case",
-                        "degree_role_score": "top_role_cluster_best_case_score",
+                        "role_family": "top_role_family_best_case",
+                        "degree_role_score": "top_role_family_best_case_score",
                     }
                 )
             )

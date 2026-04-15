@@ -63,18 +63,36 @@ class ModuleReadinessQueryAPI:
         query_or_job_ids: str | Sequence[str],
         top_k: int = 10,
         role_family: str | None = None,
+        allowed_module_codes: Sequence[str] | None = None,
     ) -> pd.DataFrame:
         allowed_indices: np.ndarray | None = None
+        allowed_codes: set[str] | None = None
+        if allowed_module_codes:
+            allowed_codes = {str(code).strip().upper() for code in allowed_module_codes if str(code).strip()}
+            if not allowed_codes:
+                return pd.DataFrame()
+
         if role_family:
             # Optional role-family filtering narrows the candidate module set before
             # the actual retrieval call.
             role_mask = self.state.module_role_scores["role_family"] == role_family
             if "role_family_name" in self.state.module_role_scores.columns:
                 role_mask = role_mask | (self.state.module_role_scores["role_family_name"] == role_family)
-            allowed_codes = set(self.state.module_role_scores[role_mask]["module_code"].tolist())
+            role_codes = {
+                str(code).strip().upper()
+                for code in self.state.module_role_scores[role_mask]["module_code"].tolist()
+                if str(code).strip()
+            }
+            allowed_codes = role_codes if allowed_codes is None else (allowed_codes & role_codes)
+            if allowed_codes is not None and not allowed_codes:
+                return pd.DataFrame()
+
+        if allowed_codes is not None:
             allowed_indices = self.state.modules[
-                self.state.modules["module_code"].isin(allowed_codes)
+                self.state.modules["module_code"].astype(str).str.upper().isin(allowed_codes)
             ].index.to_numpy(dtype=int)
+            if allowed_indices.size == 0:
+                return pd.DataFrame()
 
         retrieval_top_k = max(int(top_k), min(int(self.state.config.retrieval_top_n), int(top_k) * 5))
         if isinstance(query_or_job_ids, str):
@@ -107,9 +125,13 @@ class ModuleReadinessQueryAPI:
                 self.state.module_summary["module_code"] == module_code
             ]
             top_role = (
-                summary_row["top_role_cluster"].iloc[0]
-                if (not summary_row.empty and "top_role_cluster" in summary_row.columns)
-                else "NA"
+                summary_row["top_role_family"].iloc[0]
+                if (not summary_row.empty and "top_role_family" in summary_row.columns)
+                else (
+                    summary_row["top_role_cluster"].iloc[0]
+                    if (not summary_row.empty and "top_role_cluster" in summary_row.columns)
+                    else "NA"
+                )
             )
             top_role_name = (
                 summary_row["top_role_family_name"].iloc[0]
@@ -119,8 +141,10 @@ class ModuleReadinessQueryAPI:
             top_broad_family = (
                 summary_row["top_broad_family"].iloc[0]
                 if (not summary_row.empty and "top_broad_family" in summary_row.columns)
-                else "Other"
+                else "NA"
             )
+            if top_broad_family == "NA":
+                top_broad_family = "Other"
             top_role_score = (
                 float(summary_row["top_role_score"].iloc[0]) if not summary_row.empty else np.nan
             )
@@ -133,7 +157,7 @@ class ModuleReadinessQueryAPI:
                     "bm25_score": float(match["bm25_score"]),
                     "embedding_score": float(match["embedding_score"]),
                     "top_broad_family": top_broad_family,
-                    "top_role_cluster": top_role,
+                    "top_role_family": top_role,
                     "top_role_family_name": top_role_name,
                     "top_role_score": top_role_score,
                     "evidence_terms": str(match.get("evidence_terms", "")),

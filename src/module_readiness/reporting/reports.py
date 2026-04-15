@@ -90,7 +90,7 @@ def build_policy_brief(
     if "top_role_family_name" in top_modules.columns:
         top_modules["Top Role Family"] = top_modules["top_role_family_name"].astype(str)
     else:
-        top_modules["Top Role Family"] = top_modules["top_role_cluster"]
+        top_modules["Top Role Family"] = top_modules["top_role_family"]
 
     top_modules = top_modules.rename(
         columns={

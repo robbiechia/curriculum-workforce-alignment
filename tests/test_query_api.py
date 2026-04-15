@@ -87,7 +87,7 @@ class TestQueryAPI(unittest.TestCase):
                 "module_title": ["Machine Learning", "Digital Media Strategy"],
                 "module_profile": ["computing", "communications"],
                 "module_source": ["cache", "cache"],
-                "top_role_cluster": ["Data and Artificial Intelligence", "Communications and Media"],
+                "top_role_family": ["Data and Artificial Intelligence", "Communications and Media"],
                 "top_role_family_name": ["Data and Artificial Intelligence", "Communications and Media"],
                 "top_role_score": [1.5, 1.2],
             }

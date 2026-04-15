@@ -43,11 +43,18 @@ bash setup.sh
 ```
 
 This creates `.venv/`, installs all packages from `requirements.txt`, and creates the `data/` subdirectory structure.
+It also registers the repository `src/` directory in the virtual environment's `site-packages`, so imports work without manually exporting `PYTHONPATH`.
 
 Activate the environment manually when working outside of the scripts:
 
 ```bash
 source .venv/bin/activate
+```
+
+If you already have the virtual environment and just want to install the import-path helper, run:
+
+```bash
+.venv/bin/python scripts/install_src_path.py
 ```
 
 ### 2. Populate `.env`
@@ -81,10 +88,14 @@ Data sources are gitignored and can be accessed by the following sources. Read D
 The repository now includes a Streamlit dashboard for the Ministry of Education use case:
 
 ```bash
-streamlit run streamlit_app.py
+streamlit run streamlit_dashboard.py
 ```
 
-The app reads the generated output tables from the Postgres database configured by `DATABASE_URL` and does not rerun the pipeline automatically. Make sure the pipeline has already been run so these tables exist:
+The app is now a multipage Streamlit app:
+- main page: curriculum readiness dashboard
+- separate page: natural-language job assistant with LLM-backed explanations
+
+The current implementation reads the generated pipeline outputs from `outputs/` and does not rerun the pipeline automatically. Make sure the pipeline has already been run so these tables/files exist:
 
 - `degree_summary`
 - `degree_module_map`
@@ -101,6 +112,10 @@ If those tables are missing, run the pipeline first:
 ```bash
 .venv/bin/python scripts/run_test2_pipeline.py
 ```
+
+Optional for the Natural-Language Job Assistant page:
+- set `LLM_API_KEY` or `OPENAI_API_KEY` in `.env`
+- optionally override `LLM_BASE_URL`, `LLM_MODEL`, and `LLM_TIMEOUT_SECONDS`
 
 ---
 

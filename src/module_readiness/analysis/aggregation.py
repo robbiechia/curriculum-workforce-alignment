@@ -196,7 +196,7 @@ def build_indicators(
                 "module_profile",
                 "module_source",
                 "top_broad_family",
-                "top_role_cluster",
+                "top_role_family",
                 "top_role_family_name",
                 "top_role_score",
                 "top_role_family_name_source",
@@ -226,15 +226,15 @@ def build_indicators(
     ).rename(
         columns={
             "broad_family": "top_broad_family",
-            "role_family": "top_role_cluster",
+            "role_family": "top_role_family",
             "role_family_name": "top_role_family_name",
             "role_score": "top_role_score",
         }
     )
     module_summary["top_role_family_name"] = (
-        module_summary["top_role_family_name"].fillna(module_summary["top_role_cluster"])
+        module_summary["top_role_family_name"].fillna(module_summary["top_role_family"])
     )
-    module_summary["top_role_family_name_source"] = "role_cluster"
+    module_summary["top_role_family_name_source"] = "role_family"
 
     ssoc4_fallbacks = _build_ssoc4_fallback_labels(module_ssoc5_scores)
     module_summary = module_summary.merge(ssoc4_fallbacks, on="module_code", how="left")
@@ -242,7 +242,7 @@ def build_indicators(
     # Keep the curated role cluster for analysis, but swap in a more informative SSOC-4
     # label for display when the cluster would otherwise just be "Other".
     fallback_mask = (
-        module_summary["top_role_cluster"].astype(str).eq("Other")
+        module_summary["top_role_family"].astype(str).eq("Other")
         & module_summary["ssoc4_fallback_name"].fillna("").astype(str).str.strip().ne("")
         & module_summary["ssoc4_fallback_name"].fillna("").astype(str).ne("Other")
     )

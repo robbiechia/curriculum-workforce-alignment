@@ -69,7 +69,7 @@ class TestDegreeOutputs(unittest.TestCase):
         module_summary = pd.DataFrame(
             {
                 "module_code": ["CS1010", "BT2101", "ST2334", "CS2100", "CS2101", "ACC1701"],
-                "top_role_cluster": [
+                "top_role_family": [
                     "Software Engineering",
                     "Data Science / Analytics",
                     "Data Science / Analytics",
@@ -85,7 +85,7 @@ class TestDegreeOutputs(unittest.TestCase):
                     "Software Engineering",
                     "Accounting",
                 ],
-                "top_role_family_name_source": ["role_cluster"] * 6,
+                "top_role_family_name_source": ["role_family"] * 6,
                 "top_role_score": [0.8, 0.9, 0.85, 0.7, 0.95, 0.6],
                 "top_broad_family": ["ICT", "ICT", "ICT", "ICT", "ICT", "Finance"],
             }
