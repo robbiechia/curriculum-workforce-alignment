@@ -90,7 +90,8 @@ def read_table(table_name: str, engine=None):
     """
 
     engine = engine or get_engine()
-    return pd.read_sql_table(table_name, engine)
+    with engine.connect() as conn:
+        return pd.read_sql_table(table_name, conn)
 
 
 def read_sql(query: str, engine=None, params=None):
@@ -107,7 +108,8 @@ def read_sql(query: str, engine=None, params=None):
     """
     import pandas as pd
     engine = engine or get_engine()
-    return pd.read_sql(query, engine, params=params)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params=params)
 
 
 def write_table(df, table_name: str, if_exists: str = "replace", engine=None) -> int:
@@ -124,10 +126,78 @@ def write_table(df, table_name: str, if_exists: str = "replace", engine=None) ->
     Returns:
         Number of rows written.
     """
+    from pandas.api.types import (
+        is_bool_dtype,
+        is_datetime64_any_dtype,
+        is_float_dtype,
+        is_integer_dtype,
+    )
+    from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, MetaData, Table, Text, inspect
+
+    def _infer_column_type(series: pd.Series):
+        if is_bool_dtype(series):
+            return Boolean()
+        if is_integer_dtype(series):
+            return BigInteger()
+        if is_float_dtype(series):
+            return Float()
+        if is_datetime64_any_dtype(series):
+            return DateTime()
+        return Text()
+
+    def _coerce_value(value):
+        if pd.isna(value):
+            return None
+        if isinstance(value, pd.Timestamp):
+            return value.to_pydatetime()
+        item = getattr(value, "item", None)
+        if callable(item) and not isinstance(value, (str, bytes, bytearray)):
+            try:
+                return item()
+            except Exception:
+                return value
+        return value
+
     engine = engine or get_engine()
     df_to_write = df.copy()
     _serialize_complex_values(df_to_write)
-    df_to_write.to_sql(table_name, engine, if_exists=if_exists, index=False)
+
+    metadata = MetaData()
+    records = [
+        {col: _coerce_value(row[col]) for col in df_to_write.columns}
+        for _, row in df_to_write.iterrows()
+    ]
+
+    with engine.begin() as conn:
+        inspector = inspect(conn)
+        table_exists = inspector.has_table(table_name)
+
+        if if_exists == "fail" and table_exists:
+            raise ValueError(f"Table '{table_name}' already exists.")
+
+        if if_exists == "replace" and table_exists:
+            existing_table = Table(table_name, metadata, autoload_with=conn)
+            existing_table.drop(conn)
+            metadata = MetaData()
+            table_exists = False
+
+        if if_exists == "append" and table_exists:
+            table = Table(table_name, metadata, autoload_with=conn)
+        else:
+            table = Table(
+                table_name,
+                metadata,
+                *[
+                    Column(str(col), _infer_column_type(df_to_write[col]), nullable=True)
+                    for col in df_to_write.columns
+                ],
+            )
+            table.create(conn)
+
+        if records:
+            chunk_size = 1000
+            for start in range(0, len(records), chunk_size):
+                conn.execute(table.insert(), records[start:start + chunk_size])
     return len(df_to_write)
 
 
@@ -177,6 +247,18 @@ def _serialize_complex_values(df) -> None:
             df[col] = df[col].apply(
                 lambda v: json.dumps(v) if isinstance(v, (list, dict)) else v
             )
+
+
+def _load_csv_table(path: Path) -> pd.DataFrame:
+    """Load a CSV source table, trimming header/cell whitespace and empty rows."""
+    df = pd.read_csv(path, encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    df.columns = [str(col).strip() for col in df.columns]
+
+    for col in df.columns:
+        df[col] = df[col].astype(str).str.strip()
+
+    df = df.loc[(df != "").any(axis=1)].reset_index(drop=True)
+    return df
 
 
 # ---------------------------------------------------------------------------
@@ -231,8 +313,7 @@ def load_raw_jobs(engine=None) -> int:
             print(f"  [warn] {f.name}: {e}")
 
     df = pd.DataFrame(rows)
-    df.to_sql("raw_jobs", engine, if_exists="replace", index=False)
-    _log_load("raw_jobs", len(df), engine)
+    write_logged_table(df, "raw_jobs", engine=engine)
     print(f"  raw_jobs: {len(df):,} rows")
     return len(df)
 
@@ -293,9 +374,54 @@ def load_raw_modules(engine=None, year_override: Optional[str] = None) -> int:
         df = list_df
 
     _serialize_complex_values(df)
-    df.to_sql("raw_modules", engine, if_exists="replace", index=False)
-    _log_load("raw_modules", len(df), engine)
+    write_logged_table(df, "raw_modules", engine=engine)
     print(f"  raw_modules: {len(df):,} rows")
+    return len(df)
+
+
+# ---------------------------------------------------------------------------
+# Bulk degree plan loader
+# ---------------------------------------------------------------------------
+
+def load_nus_degree_plan(engine=None) -> int:
+    """Load the curated NUS degree-plan CSV into the nus_degree_plan table."""
+    engine = engine or get_engine()
+
+    path = PROJECT_ROOT / "data" / "nus_degree_plan.csv"
+    if not path.exists():
+        print(f"  [skip] CSV file not found at {path}")
+        return 0
+
+    df = _load_csv_table(path)
+    expected_columns = [
+        "faculty",
+        "faculty_code",
+        "degree",
+        "primary_major",
+        "curriculum_type",
+        "curriculum_credits",
+        "module_type",
+        "module_credits",
+        "modules",
+        "curriculum_website",
+    ]
+    missing_columns = [col for col in expected_columns if col not in df.columns]
+    extra_columns = [col for col in df.columns if col not in expected_columns]
+    if missing_columns or extra_columns:
+        problems = []
+        if missing_columns:
+            problems.append(f"missing columns: {missing_columns}")
+        if extra_columns:
+            problems.append(f"unexpected columns: {extra_columns}")
+        raise ValueError(f"Invalid nus_degree_plan.csv schema ({'; '.join(problems)})")
+
+    df = df.loc[:, expected_columns].copy()
+
+    for col in ["curriculum_credits", "module_credits"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+
+    write_logged_table(df, "nus_degree_plan", engine=engine)
+    print(f"  nus_degree_plan: {len(df):,} rows")
     return len(df)
 
 
@@ -326,9 +452,7 @@ def load_pipeline_outputs(engine=None) -> int:
         path = parquet_files.get(stem) or csv_files[stem]
         try:
             df = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
-            _serialize_complex_values(df)
-            df.to_sql(stem, engine, if_exists="replace", index=False)
-            _log_load(stem, len(df), engine)
+            write_logged_table(df, stem, engine=engine)
             print(f"  {stem}: {len(df):,} rows")
             total += len(df)
         except Exception as e:
@@ -369,6 +493,7 @@ def main() -> None:
         print("Loading raw inputs...")
         load_raw_jobs(engine)
         load_raw_modules(engine, year_override=args.year)
+        load_nus_degree_plan(engine)
         print()
 
     if do_outputs:

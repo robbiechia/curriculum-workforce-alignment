@@ -35,7 +35,7 @@ fi
 # ---------------------------------------------------------------------------
 db_status=$("$PYTHON" - <<'PYEOF'
 import os
-tables = ["raw_jobs", "raw_modules", "skillsfuture_mapping", "ssoc2024_definitions"]
+tables = ["raw_jobs", "raw_modules", "nus_degree_plan", "skillsfuture_mapping", "ssoc2024_definitions"]
 try:
     from sqlalchemy import create_engine, text
     engine = create_engine(os.environ["DATABASE_URL"])
@@ -76,11 +76,13 @@ _get() { echo "$db_status" | grep "^$1=" | cut -d= -f2-; }
 
 status_raw_jobs=$(_get "STATUS_raw_jobs")
 status_raw_modules=$(_get "STATUS_raw_modules")
+status_degree_plan=$(_get "STATUS_nus_degree_plan")
 status_skillsfuture=$(_get "STATUS_skillsfuture_mapping")
 status_ssoc=$(_get "STATUS_ssoc2024_definitions")
 
 info_raw_jobs=$(_get "INFO_raw_jobs")
 info_raw_modules=$(_get "INFO_raw_modules")
+info_degree_plan=$(_get "INFO_nus_degree_plan")
 info_skillsfuture=$(_get "INFO_skillsfuture_mapping")
 info_ssoc=$(_get "INFO_ssoc2024_definitions")
 
@@ -96,6 +98,7 @@ printf "  %-32s  %-8s  %s\n" "Table" "Status" "Details"
 printf "  %-32s  %-8s  %s\n" "-----" "------" "-------"
 printf "  %-32s  %-8s  %s\n" "raw_jobs"            "$(_label "$status_raw_jobs")"    "$info_raw_jobs"
 printf "  %-32s  %-8s  %s\n" "raw_modules"          "$(_label "$status_raw_modules")" "$info_raw_modules"
+printf "  %-32s  %-8s  %s\n" "nus_degree_plan"      "$(_label "$status_degree_plan")" "$info_degree_plan"
 printf "  %-32s  %-8s  %s\n" "skillsfuture_mapping" "$(_label "$status_skillsfuture")" "$info_skillsfuture"
 printf "  %-32s  %-8s  %s\n" "ssoc2024_definitions" "$(_label "$status_ssoc")"        "$info_ssoc"
 echo ""
@@ -145,6 +148,23 @@ sys.path.insert(0, str(Path('src')))
 from data_utils.db_utils import get_engine, load_raw_modules
 load_raw_modules(get_engine())
 "
+  fi
+fi
+
+# ---- degree_plan ------------------------------------------
+if [[ "$status_degree_plan" != "yes" ]]; then
+  ALL_OK=false
+  if [[ -f "data/nus_degree_plan.csv" ]]; then
+    echo "[nus_degree_plan] Loading from data/nus_degree_plan.csv ..."
+    "$PYTHON" -c "
+import sys; from pathlib import Path
+sys.path.insert(0, str(Path('src')))
+from data_utils.db_utils import get_engine, load_nus_degree_plan
+load_nus_degree_plan(get_engine())
+"
+  else
+    echo "[nus_degree_plan] MISSING — add data/nus_degree_plan.csv first."
+    echo "           See: src/data_utils/DATA_SETUP.md"
   fi
 fi
 

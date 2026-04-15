@@ -73,6 +73,15 @@ Three Excel files must be downloaded manually and placed in `data/`:
 
 ---
 
+### 5. NUS degree plan — `nus_degree_plan`
+
+**Origin:** Team-curated curriculum plan CSV for NUS degree requirements and module buckets.
+
+**How to download:**  
+Place `nus_degree_plan.csv` into `data/`. The database loader reads it directly and uploads it as the `nus_degree_plan` table.
+
+---
+
 ## Scripts Reference
 
 | Script | Purpose | Inputs | Outputs |
@@ -80,6 +89,7 @@ Three Excel files must be downloaded manually and placed in `data/`:
 | `scrape_nusmods.py` | Fetch NUSMods module catalog via API | NUSMods API / local cache | `data/nusmods/<year>/` |
 | `generate_skillsfuture_mapping.py` | Build normalised skills taxonomy CSV | 3 xlsx in `data/` | `data/skillsfuture_mapping.csv` |
 | `generate_ssoc_definitions.py` | Extract SSOC code → title lookup CSV | `data/ssoc2024-detailed-definitions.xlsx` | `data/ssoc2024-detailed-definitions.csv` |
+| `db_utils.py` | Load curated NUS degree plan CSV | `data/nus_degree_plan.csv` | Supabase `nus_degree_plan` |
 | `db_utils.py` | Load all data into shared database | Raw JSON + processed CSVs | Supabase tables |
 
 ---
@@ -90,6 +100,7 @@ Three Excel files must be downloaded manually and placed in `data/`:
 |---|---|---|
 | `raw_jobs` | `db_utils.load_raw_jobs` | Flattened MSF job postings |
 | `raw_modules` | `db_utils.load_raw_modules` | NUSMods module catalog + detail |
+| `nus_degree_plan` | `db_utils.load_nus_degree_plan` | Curated NUS degree curriculum buckets |
 | `skillsfuture_mapping` | `generate_skillsfuture_mapping` + `db_utils` | Normalised SkillsFuture skills with channel and cluster |
 | `ssoc2024_definitions` | `generate_ssoc_definitions` + `db_utils` | SSOC 2024 code → occupation title lookup |
 | `_data_log` | `db_utils` (auto) | Last-loaded timestamp and row count per table |
