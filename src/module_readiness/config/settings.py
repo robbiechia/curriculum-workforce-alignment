@@ -27,10 +27,10 @@ class PipelineConfig:
     bm25_b: float = 0.75
     rrf_k: int = 60
     retrieval_top_n: int = 200
-    bm25_min_score: float = 70.0
-    bm25_relative_min: float = 0.50
-    embedding_min_similarity: float = 0.45
-    embedding_relative_min: float = 0.70
+    bm25_min_score: float = 20
+    bm25_relative_min: float = 0.25
+    embedding_min_similarity: float = 0
+    embedding_relative_min: float = 0
     role_support_prior: float = 5.0
     degree_role_top_n: int = 5
     degree_demand_skill_top_n: int = 15

@@ -100,10 +100,14 @@ The current implementation reads the generated pipeline outputs from `outputs/` 
 - `degree_summary`
 - `degree_module_map`
 - `degree_skill_supply`
-- `degree_role_scores`
-- `degree_ssoc5_scores`
-- `degree_role_skill_gaps`
-- `degree_ssoc5_skill_gaps`
+- `degree_requiremenrt_buckets`
+- `jobs_clean`
+- `modules_clean`
+- `module_role_scores`
+- `module_summary`
+- `module_job_evidence`
+- `job_role_map`
+- `module_preclusions`
 
 The pipeline still writes CSV snapshots to `outputs/` for inspection, but the app now reads from the database so the future web app can use the same source of truth.
 

@@ -3,7 +3,6 @@ nltk
 numpy
 rank-bm25
 sentence-transformers
-certifi
 sqlalchemy
 psycopg2-binary
 openpyxl

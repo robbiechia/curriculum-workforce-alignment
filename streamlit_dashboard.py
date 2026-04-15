@@ -2071,7 +2071,7 @@ def main() -> None:
         "MOE policy review tool. Analyses how NUS degree curricula prepare graduates "
         "for Singapore's job market using module-to-job alignment scores validated against "
         "human-annotated relevance labels. Use the Streamlit page selector in the sidebar "
-        "to switch between this dashboard and the Natural-Language Job Assistant. "
+        "to switch between this dashboard and the Career Query Assistant. "
         "How to navigate the tabs on this page:"
     )
     st.markdown(
