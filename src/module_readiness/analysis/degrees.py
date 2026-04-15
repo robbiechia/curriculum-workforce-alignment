@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import PipelineConfig
-
+from data_utils.db_utils import read_table
 
 @dataclass
 class DegreeAggregationResult:
@@ -295,66 +295,14 @@ def _expand_token(
     return [(value, code) for code in candidates], "exact", None
 
 
-def _load_degree_mapping(path: Path) -> pd.DataFrame:
-    if not path.exists():
-        return pd.DataFrame(
-            columns=[
-                "degree_id",
-                "faculty",
-                "faculty_code",
-                "major",
-                "curriculum_link",
-                "notes",
-                "required_modules",
-            ]
-        )
-
-    df = pd.read_csv(path, encoding="utf-8-sig", encoding_errors="replace", dtype=str, keep_default_na=False)
-    for col in ["faculty", "faculty_code", "major", "curriculum_link", "notes", "required_modules"]:
-        if col not in df.columns:
-            df[col] = ""
-    out = df.copy()
-    for col in ["faculty", "faculty_code", "major", "curriculum_link", "notes", "required_modules"]:
-        out[col] = out[col].fillna("").astype(str).str.strip()
-    out["degree_id"] = out.apply(
-        lambda row: _degree_id(str(row.get("faculty_code", "")), str(row.get("major", ""))),
-        axis=1,
-    )
-    return out[
-        ["degree_id", "faculty", "faculty_code", "major", "curriculum_link", "notes", "required_modules"]
-    ].drop_duplicates(subset=["degree_id"]).reset_index(drop=True)
-
-
 def _load_degree_plan(config: PipelineConfig) -> tuple[pd.DataFrame, str]:
-    plan_path = getattr(config, "degree_plan_file", Path(""))
-    if plan_path and Path(plan_path).exists():
-        df = pd.read_csv(plan_path, encoding="utf-8-sig", encoding_errors="replace", dtype=str, keep_default_na=False)
-        df.columns = [str(col).strip() for col in df.columns]
-        for col in df.columns:
-            df[col] = df[col].astype(str).str.strip()
-        return df, "degree_plan"
+        db_df = read_table("nus_degree_plan")
+        if not db_df.empty:
+            db_df.columns = [str(col).strip() for col in db_df.columns]
+            for col in db_df.columns:
+                db_df[col] = db_df[col].fillna("").astype(str).str.strip()
+            return db_df, "degree_plan_db"
 
-    mapping = _load_degree_mapping(config.degree_mapping_file)
-    if mapping.empty:
-        return pd.DataFrame(columns=_required_bucket_columns()), "legacy_mapping"
-
-    rows: list[dict[str, object]] = []
-    for _, row in mapping.iterrows():
-        rows.append(
-            {
-                "faculty": row["faculty"],
-                "faculty_code": row["faculty_code"],
-                "degree": "",
-                "primary_major": row["major"],
-                "curriculum_type": "Required Modules",
-                "curriculum_credits": "",
-                "module_type": "Required Modules",
-                "module_credits": "",
-                "modules": str(row["required_modules"]),
-                "curriculum_website": row["curriculum_link"],
-            }
-        )
-    return pd.DataFrame(rows), "legacy_mapping"
 
 
 def _prepare_requirement_buckets(
