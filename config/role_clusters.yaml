@@ -1,0 +1,450 @@
+{
+  "cluster_broad_family_map": {
+    "Software Engineering": "ICT",
+    "Data Science / Analytics": "ICT",
+    "AI / ML": "ICT",
+    "Cybersecurity": "ICT",
+    "Cloud / Infrastructure / DevOps": "ICT",
+    "Business Analysis / Product / Project": "Business",
+    "Accounting / Audit / Tax": "Finance",
+    "Finance / Risk / Compliance": "Finance",
+    "Marketing / Communications": "Business",
+    "Sales / Business Development": "Business",
+    "HR / Talent": "Business",
+    "Engineering / Manufacturing": "Engineering",
+    "Electronics / Embedded / Systems": "Engineering",
+    "Operations / Admin": "Business",
+    "Legal / IP": "Professional Services",
+    "Education / Training": "Education",
+    "Social / Healthcare / Community": "Community / Healthcare",
+    "Other": "Other"
+  },
+  "ssoc5_exact_map": {
+    "12133": "Finance / Risk / Compliance",
+    "12230": "Engineering / Manufacturing",
+    "13291": "Engineering / Manufacturing",
+    "13420": "Social / Healthcare / Community",
+    "13441": "Social / Healthcare / Community",
+    "14123": "Operations / Admin",
+    "21349": "Social / Healthcare / Community",
+    "21451": "Engineering / Manufacturing",
+    "21454": "Engineering / Manufacturing",
+    "21494": "Engineering / Manufacturing",
+    "21632": "Engineering / Manufacturing",
+    "21662": "Marketing / Communications",
+    "21664": "Business Analysis / Product / Project",
+    "23612": "Education / Training",
+    "24212": "Business Analysis / Product / Project",
+    "24240": "HR / Talent",
+    "24351": "Finance / Risk / Compliance",
+    "24362": "Sales / Business Development",
+    "26413": "Marketing / Communications",
+    "26421": "Marketing / Communications",
+    "31111": "Engineering / Manufacturing",
+    "31412": "Social / Healthcare / Community",
+    "31711": "Operations / Admin",
+    "32120": "Social / Healthcare / Community",
+    "33129": "Accounting / Audit / Tax",
+    "33232": "Operations / Admin",
+    "33461": "Operations / Admin",
+    "34221": "Education / Training",
+    "36100": "Education / Training",
+    "44170": "Legal / IP",
+    "52202": "Sales / Business Development",
+    "53120": "Education / Training"
+  },
+  "ssoc4_exact_map": {
+    "1211": "Finance / Risk / Compliance",
+    "1219": "Operations / Admin",
+    "1221": "Sales / Business Development",
+    "1222": "Marketing / Communications",
+    "1323": "Engineering / Manufacturing",
+    "1324": "Operations / Admin",
+    "1329": "Engineering / Manufacturing",
+    "1330": "Cloud / Infrastructure / DevOps",
+    "1346": "Finance / Risk / Compliance",
+    "1412": "Operations / Admin",
+    "2122": "Data Science / Analytics",
+    "2131": "Social / Healthcare / Community",
+    "2141": "Engineering / Manufacturing",
+    "2142": "Engineering / Manufacturing",
+    "2143": "Engineering / Manufacturing",
+    "2144": "Engineering / Manufacturing",
+    "2145": "Engineering / Manufacturing",
+    "2151": "Electronics / Embedded / Systems",
+    "2161": "Engineering / Manufacturing",
+    "2171": "Operations / Admin",
+    "2211": "Social / Healthcare / Community",
+    "2220": "Social / Healthcare / Community",
+    "2250": "Social / Healthcare / Community",
+    "2262": "Social / Healthcare / Community",
+    "2264": "Social / Healthcare / Community",
+    "2266": "Social / Healthcare / Community",
+    "2268": "Social / Healthcare / Community",
+    "2269": "Social / Healthcare / Community",
+    "2340": "Education / Training",
+    "2350": "Education / Training",
+    "2361": "Education / Training",
+    "2411": "Accounting / Audit / Tax",
+    "2412": "Finance / Risk / Compliance",
+    "2413": "Finance / Risk / Compliance",
+    "2414": "Finance / Risk / Compliance",
+    "2423": "HR / Talent",
+    "2425": "Legal / IP",
+    "2429": "Operations / Admin",
+    "2431": "Marketing / Communications",
+    "2432": "Marketing / Communications",
+    "2433": "Sales / Business Development",
+    "2512": "Software Engineering",
+    "2514": "Software Engineering",
+    "2521": "Cloud / Infrastructure / DevOps",
+    "2523": "Cloud / Infrastructure / DevOps",
+    "2524": "Cybersecurity",
+    "2611": "Legal / IP",
+    "2635": "Social / Healthcare / Community",
+    "2642": "Marketing / Communications",
+    "3117": "Engineering / Manufacturing",
+    "3118": "Engineering / Manufacturing",
+    "3160": "Operations / Admin",
+    "3255": "Social / Healthcare / Community",
+    "3313": "Accounting / Audit / Tax",
+    "3411": "Legal / IP",
+    "3432": "Engineering / Manufacturing",
+    "3512": "Cloud / Infrastructure / DevOps",
+    "3620": "Education / Training",
+    "3691": "Education / Training",
+    "4120": "Operations / Admin",
+    "4224": "Operations / Admin",
+    "4311": "Accounting / Audit / Tax",
+    "4312": "Finance / Risk / Compliance",
+    "4323": "Operations / Admin",
+    "5131": "Operations / Admin",
+    "5242": "Sales / Business Development",
+    "7500": "Engineering / Manufacturing"
+  },
+  "split_rules": [
+    {
+      "cluster": "Finance / Risk / Compliance",
+      "ssoc4": [
+        "2121"
+      ],
+      "keywords": [
+        "actuary",
+        "actuarial",
+        "insurance",
+        "pricing",
+        "risk"
+      ]
+    },
+    {
+      "cluster": "Data Science / Analytics",
+      "ssoc4": [
+        "2121"
+      ],
+      "keywords": [
+        "operations research",
+        "optimization",
+        "optimisation",
+        "mathematics",
+        "mathematical",
+        "analytics",
+        "data"
+      ]
+    },
+    {
+      "cluster": "AI / ML",
+      "ssoc4": [
+        "2519",
+        "2149"
+      ],
+      "keywords": [
+        "ai",
+        "machine learning",
+        "deep learning",
+        "llm",
+        "nlp",
+        "computer vision",
+        "pytorch",
+        "tensorflow",
+        "genai",
+        "generative ai",
+        "model training",
+        "algorithm engineer",
+        "physical ai"
+      ]
+    },
+    {
+      "cluster": "Data Science / Analytics",
+      "ssoc4": [
+        "2519",
+        "2421",
+        "3349",
+        "2149"
+      ],
+      "keywords": [
+        "data analyst",
+        "data analytics",
+        "data analysis",
+        "analytics",
+        "power bi",
+        "tableau",
+        "dashboard",
+        "reporting",
+        "data visualization",
+        "etl",
+        "pipelines",
+        "statistics",
+        "statistical",
+        "business intelligence"
+      ]
+    },
+    {
+      "cluster": "Cloud / Infrastructure / DevOps",
+      "ssoc4": [
+        "2152",
+        "2511",
+        "2529",
+        "3349",
+        "1330"
+      ],
+      "keywords": [
+        "cloud",
+        "aws",
+        "azure",
+        "gcp",
+        "kubernetes",
+        "terraform",
+        "ansible",
+        "docker",
+        "devops",
+        "platform engineer",
+        "site reliability",
+        "sre",
+        "network engineer",
+        "infrastructure",
+        "windows server",
+        "dns"
+      ]
+    },
+    {
+      "cluster": "Cybersecurity",
+      "ssoc4": [
+        "2524",
+        "2529",
+        "1330"
+      ],
+      "keywords": [
+        "cybersecurity",
+        "cyber security",
+        "security operations",
+        "soc",
+        "siem",
+        "vulnerability",
+        "penetration testing",
+        "iam",
+        "identity access",
+        "threat"
+      ]
+    },
+    {
+      "cluster": "Software Engineering",
+      "ssoc4": [
+        "2511",
+        "2519",
+        "2152"
+      ],
+      "keywords": [
+        "software engineer",
+        "software developer",
+        "software development",
+        "java developer",
+        "frontend",
+        "front end",
+        "backend",
+        "back end",
+        "full stack",
+        "fullstack",
+        "api",
+        "web applications",
+        "spring",
+        "react"
+      ]
+    },
+    {
+      "cluster": "Electronics / Embedded / Systems",
+      "ssoc4": [
+        "2152",
+        "2149"
+      ],
+      "keywords": [
+        "firmware",
+        "embedded",
+        "electronics",
+        "hardware",
+        "pcba",
+        "rf engineer",
+        "system integration",
+        "semiconductor",
+        "ic test",
+        "radio frequency"
+      ]
+    },
+    {
+      "cluster": "Business Analysis / Product / Project",
+      "ssoc4": [
+        "2421",
+        "2511",
+        "3349"
+      ],
+      "keywords": [
+        "business analyst",
+        "product manager",
+        "product owner",
+        "project manager",
+        "project coordinator",
+        "requirements",
+        "user stories",
+        "uat",
+        "jira",
+        "stakeholder",
+        "business requirements",
+        "process"
+      ]
+    },
+    {
+      "cluster": "Finance / Risk / Compliance",
+      "ssoc4": [
+        "3349"
+      ],
+      "keywords": [
+        "kyc",
+        "aml",
+        "compliance",
+        "funds operation",
+        "trade support",
+        "treasury",
+        "name screening",
+        "risk",
+        "portfolio",
+        "investment analyst"
+      ]
+    },
+    {
+      "cluster": "Marketing / Communications",
+      "ssoc4": [
+        "3322",
+        "4110"
+      ],
+      "keywords": [
+        "digital marketing",
+        "marketing",
+        "seo",
+        "social media",
+        "campaign",
+        "brand",
+        "content",
+        "communications",
+        "media buyer",
+        "lead generation",
+        "google analytics",
+        "google ads"
+      ]
+    },
+    {
+      "cluster": "Sales / Business Development",
+      "ssoc4": [
+        "3322",
+        "4110"
+      ],
+      "keywords": [
+        "business development",
+        "sales",
+        "account executive",
+        "account manager",
+        "client account",
+        "partnership",
+        "b2b",
+        "selling"
+      ]
+    },
+    {
+      "cluster": "Operations / Admin",
+      "ssoc4": [
+        "3349",
+        "2529",
+        "4110"
+      ],
+      "keywords": [
+        "operations",
+        "office",
+        "administration",
+        "administrative",
+        "coordinator",
+        "document controller",
+        "record management",
+        "inventory",
+        "files",
+        "billing",
+        "clerical"
+      ]
+    },
+    {
+      "cluster": "Engineering / Manufacturing",
+      "ssoc4": [
+        "2166"
+      ],
+      "keywords": [
+        "bim",
+        "revit",
+        "autocad",
+        "interior designer",
+        "architectural",
+        "facade",
+        "space planning"
+      ]
+    },
+    {
+      "cluster": "Business Analysis / Product / Project",
+      "ssoc4": [
+        "2166"
+      ],
+      "keywords": [
+        "ux",
+        "ui",
+        "user experience",
+        "user interface",
+        "product designer",
+        "digital experience"
+      ]
+    },
+    {
+      "cluster": "Marketing / Communications",
+      "ssoc4": [
+        "2166"
+      ],
+      "keywords": [
+        "graphic designer",
+        "multimedia",
+        "motion graphic",
+        "visual merchandiser",
+        "creative",
+        "brand design"
+      ]
+    },
+    {
+      "cluster": "Engineering / Manufacturing",
+      "ssoc4": [
+        "2149"
+      ],
+      "keywords": [
+        "quantity surveyor",
+        "site engineer",
+        "civil",
+        "construction",
+        "marine",
+        "shipyard",
+        "procurement"
+      ]
+    }
+  ]
+}

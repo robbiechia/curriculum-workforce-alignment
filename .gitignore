@@ -1,0 +1,27 @@
+# Virtual environments
+projvenv/
+venv/
+.venv/
+
+# Local environment files
+.env
+!.env.example
+
+# Data and generated artifacts
+data/
+cache/
+outputs/
+*.csv
+*.parquet
+*.xlsx
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editors and OS files
+.vscode/
+.DS_Store

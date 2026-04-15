@@ -1,0 +1,13 @@
+pandas
+nltk
+numpy
+rank-bm25
+sentence-transformers
+certifi
+sqlalchemy
+psycopg2-binary
+openpyxl
+loguru
+streamlit
+certifi
+plotly
