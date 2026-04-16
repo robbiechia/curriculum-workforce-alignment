@@ -108,7 +108,26 @@ This runs all stages — ingestion, role assignment, skill taxonomy, module cons
 
 A full run takes 10–20 minutes on a laptop CPU; the `--quick` flag brings this down to 2–3 minutes by considering a smaller subset of modules.
 
-## 4. Our Streamlit dashboard
+## 4. Generating MOE review charts
+
+To produce the static artefact images for MOE officer review, run from the project root:
+
+```bash
+python scripts/generate_moe_charts.py
+```
+
+Images are written to `outputs/moe_charts/`. The full set is:
+
+| File | What it shows |
+|---|---|
+| `degree_readiness_scatter.png` | Per-degree skill coverage vs job market coverage |
+| `module_score_distribution_by_role.png` | Module alignment score distributions by primary role family |
+| `primary_major_heatmap_<FACULTY>.png` | Mean core-module alignment per degree × role family, one file per faculty |
+| `common_curriculum_violin.png` | GE module score distribution across role families (baseline reference) |
+
+The script reads from `outputs/` CSVs — run the pipeline first if those files are missing or stale.
+
+## 5. Our Streamlit dashboard
 
 The dashboard has two pages:
 
