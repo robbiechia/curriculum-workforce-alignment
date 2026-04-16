@@ -370,7 +370,7 @@ skill is represented in required curriculum coverage.</p>
 <div style="text-align:center;">
 <img src="assets/degree_example.svg" alt="Degree-level aggregation worked example" style="width:95%; max-width:1200px; display:block; margin:0 auto;">
 <p style="text-align:center;">
-<em>Figure 5. Worked example of degree-level, credit-adjusted
+<em>Degree Aggregation Example. Worked example of credit-adjusted
 skill-supply aggregation.</em>
 </p>
 </div>
@@ -386,14 +386,14 @@ embedding model.</p>
 <h4 id="algorithms">3.3.1 Algorithms</h4>
 <p>The retrieval pipeline combines lexical and semantic channels, then
 fuses both ranked lists to produce top-<code>k</code> module-job matches
-for downstream aggregation (Figure 4). We deliberately used both
-channels because module-job matching has two distinct failure modes.
-First, some relevance is explicit and keyword-driven (for example,
-<code>python</code>, <code>sql</code>, <code>tableau</code>), where
-lexical exactness matters. Second, many relevant matches are phrased
-differently across module descriptions and job ads; semantic retrieval
-helps preserve these paraphrastic matches instead of filtering them out
-too early.</p>
+for downstream aggregation (see ML workflow diagram below). We
+deliberately used both channels because module-job matching has two
+distinct failure modes. First, some relevance is explicit and
+keyword-driven (for example, <code>python</code>, <code>sql</code>,
+<code>tableau</code>), where lexical exactness matters. Second, many
+relevant matches are phrased differently across module descriptions and
+job ads; semantic retrieval helps preserve these paraphrastic matches
+instead of filtering them out too early.</p>
 <p><strong>BM25 lexical channel</strong></p>
 <p>BM25 is implemented with <code>BM25Okapi</code> over tokenized
 <code>retrieval_text</code> (normalized base text plus appended
@@ -452,11 +452,11 @@ style="position:relative; left:50%; right:50%; margin-left:-50vw; margin-right:-
 <p><a href="assets/ml_workflow.svg"><img src="assets/ml_workflow.svg" alt="End-to-end retrieval and scoring workflow" style="width:100vw; max-width:none; height:auto; display:block; margin:0 auto;"></a></p>
 </div>
 <p style="text-align:center;">
-<em>Figure 4. Hybrid retrieval and scoring workflow (BM25, embeddings,
-thresholding, and RRF fusion).</em>
+<em>ML Workflow. Hybrid retrieval and scoring workflow (BM25,
+embeddings, thresholding, and RRF fusion).</em>
 </p>
 <p style="text-align:center;">
-<a href="assets/ml_workflow.svg">Open Figure 4 at full size</a>
+<a href="assets/ml_workflow.svg">Open ML workflow at full size</a>
 </p>
 <h4 id="evaluation">3.3.2 Evaluation</h4>
 <p>We evaluated retrieval primarily with nDCG@10, with Precision@10 and
@@ -476,36 +476,6 @@ ahead of Embedding (0.640) and BM25 (0.554). Under
 0.353 and mean Recall@10 = 0.350. This indicates that combining lexical
 and semantic retrieval improves top-rank quality versus either channel
 alone. Full results are shown in Table 1.</p>
-<table>
-<thead>
-<tr>
-<th>Ranker</th>
-<th style="text-align: right;">Mean nDCG@10</th>
-<th style="text-align: right;">Mean Precision@10</th>
-<th style="text-align: right;">Mean Recall@10</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>BM25</td>
-<td style="text-align: right;">0.554</td>
-<td style="text-align: right;">0.295</td>
-<td style="text-align: right;">0.263</td>
-</tr>
-<tr>
-<td>Embedding</td>
-<td style="text-align: right;">0.640</td>
-<td style="text-align: right;">0.328</td>
-<td style="text-align: right;">0.336</td>
-</tr>
-<tr>
-<td>Hybrid (BM25 + Embedding + RRF)</td>
-<td style="text-align: right;">0.657</td>
-<td style="text-align: right;">0.353</td>
-<td style="text-align: right;">0.350</td>
-</tr>
-</tbody>
-</table>
 <div style="text-align:center;">
 <img src="assets/eval_metrics_table_1.png" alt="Evaluation metrics table image" style="width:90%; max-width:1100px; display:block; margin:0 auto;">
 <p style="text-align:center;">
@@ -536,87 +506,123 @@ where <code>role_support_prior = 5</code>. This behaves like adding
 about five pseudo-evidence jobs before fully trusting a family score,
 reducing overreaction to sparse evidence while still allowing
 strong-evidence families to converge toward full weight.</p>
-<div style="text-align:center;">
-<img src="assets/scenario_table_figure_5.png" alt="Scenario comparison table for retrieval settings" style="width:92%; max-width:1100px; display:block; margin:0 auto;">
-<p style="text-align:center;">
-<em>Figure 6. Scenario comparison used to select the final
-coverage-first operating point.</em>
-</p>
-</div>
 <h2 id="findings">4. Findings</h2>
 <h3 id="results">4.1 Results</h3>
-<p>Key result visualizations are provided in Figures 7 to 10.</p>
-<div style="text-align:center;">
-<img src="assets/module_score_distribution.png" alt="Module score distribution by primary role family" style="width:95%; max-width:1200px; display:block; margin:0 auto;">
-<p style="text-align:center;">
-<em>Figure 7. Distribution of module alignment scores by primary role
-family.</em>
-</p>
-</div>
-<div style="text-align:center;">
-<img src="assets/role_family_score_distribution.png" alt="Common curriculum score distribution by role family" style="width:95%; max-width:1200px; display:block; margin:0 auto;">
-<p style="text-align:center;">
-<em>Figure 8. Common-curriculum score distributions by role family.</em>
-</p>
-</div>
-<div style="text-align:center;">
-<img src="assets/primary_major_readiness.png" alt="Primary major readiness heatmap by role family" style="width:95%; max-width:1200px; display:block; margin:0 auto;">
-<p style="text-align:center;">
-<em>Figure 9. Primary-major readiness heatmap by role family.</em>
-</p>
-</div>
+<p>Our pipeline enables MOE officers to evaluate three complementary
+views of curriculum readiness.</p>
 <div style="text-align:center;">
 <img src="assets/skill_coverage_vs_job_market.png" alt="Per-degree readiness scatter of skill coverage vs job market coverage" style="width:95%; max-width:1200px; display:block; margin:0 auto;">
 <p style="text-align:center;">
-<em>Figure 10. Degree-level readiness: curriculum skill coverage versus
-job-market coverage.</em>
+<em>Figure 4. Skill-degree scatter plot.</em>
 </p>
 </div>
-<h3 id="discussion">4.2 Discussion</h3>
-<p>Key discussion points:</p>
-<ul>
-<li>Hybrid retrieval achieved the strongest overall ranking
-performance.</li>
-<li>Practical concerns about bias/feedback loops should be
-assessed.</li>
-<li>Preclusion constraints were not explicitly modelled; some highly
-ranked modules may not be feasible within specific degree pathways.</li>
-<li>Score ranges and confidence should be interpreted with evidence
-coverage in mind.</li>
-<li>Project-based and hands-on modules tend to show stronger skills
-alignment signals.</li>
-<li>Higher-level modules (for example, 3000/4000-level) often rank
-highly, suggesting stronger specialization signals.</li>
-</ul>
-<h3 id="recommendations">4.3 Recommendations</h3>
-<p>We recommend deploying the dashboard as an MVP for MOE curriculum
-policy review. It is transparent, explainable, and usable by
-non-technical stakeholders, with filters by role family, faculty, and
-programme, and core outputs on module-role fit, degree-level skill
-coverage, and prioritised skill gaps. A Career Query Assistant is also
-included to interpret job queries and suggest relevant modules.</p>
+<p>As shown in Figure 4, most degrees cluster in a narrow band of
+job-market coverage regardless of how explicitly they describe taught
+skills. Specialist programmes such as Nursing and Pharmacy sit in the
+lower-left region where training is deep but domain-locked. Computing
+and data degrees (for example, Computer Science, AI, and Information
+Security) appear in the upper-right, indicating both broader market
+reach and higher skill coverage.</p>
 <div style="text-align:center;">
 <img src="assets/streamlit_page.png" alt="Streamlit dashboard page showing skill-module gaps" style="width:95%; max-width:1200px; display:block; margin:0 auto;">
 <p style="text-align:center;">
-<em>Figure 11. Streamlit dashboard view: skill-module gap
-recommendations.</em>
+<em>Figure 5. Skill-module gaps in dashboard.</em>
 </p>
 </div>
-<p>Policy actions should focus on making curriculum alignment more
+<p>Using the dashboard (Figure 5), MOE officers can inspect explicitly
+covered and uncovered skills by degree and role family, down to the
+specific modules. This allows officers to assess whether existing
+modules are sufficient to close identified gaps and, where needed,
+prioritize curriculum redesign.</p>
+<div style="text-align:center;">
+<img src="assets/scenario_table_figure_5.png" alt="Skill-demand overview table" style="width:92%; max-width:1100px; display:block; margin:0 auto;">
+<p style="text-align:center;">
+<em>Figure 6. Skill-demand overview.</em>
+</p>
+</div>
+<p>The table view (Figure 6) complements this by showing generally low
+coverage for many employer-demanded skills. A Career Query Assistant is
+also included, using an LLM to interpret job queries and suggest
+relevant modules.</p>
+<div style="text-align:center;">
+<img src="assets/module_score_distribution.png" alt="Module score distribution by primary role family" style="width:95%; max-width:1200px; display:block; margin:0 auto;">
+<p style="text-align:center;">
+<em>Figure 7. Module-role alignment.</em>
+</p>
+</div>
+<p>Figure 7 shows substantial variation in alignment score level and
+spread across role families. Specialist families such as
+Accounting/Audit/Tax have higher medians and tighter distributions,
+suggesting that module language maps more directly to job language.
+Cross-cutting families such as Business Analysis/Product/Project tend to
+score lower, as relevant skills are often taught implicitly rather than
+explicitly named in module descriptions. Broader families such as
+Marketing/Communications and Legal/IP show wider spreads, reflecting a
+mix of specialised and incidentally relevant modules. Most medians fall
+in the 0.40 to 0.48 range, indicating that many modules remain
+general-purpose rather than strongly role-targeted.</p>
+<div style="text-align:center;">
+<img src="assets/role_family_score_distribution.png" alt="Common curriculum score distribution by role family" style="width:95%; max-width:1200px; display:block; margin:0 auto;">
+<p style="text-align:center;">
+<em>Figure 8. Common curriculum role alignment.</em>
+</p>
+</div>
+<p>Figure 8 indicates that GE/common-curriculum modules score
+systematically lower than major modules across role families.
+Education/Training ranks highest, likely because GE descriptions often
+use learning-objective language that resembles training-sector postings.
+Technical specialist families such as Cybersecurity and Cloud/DevOps
+appear lowest with narrow, low-scoring distributions, suggesting limited
+technical-signal coverage from common curriculum modules for these
+roles. This provides a practical baseline: degrees relying more heavily
+on GE modules for a target role are expected to show weaker alignment
+than degrees concentrated in major-specific requirements.</p>
+<div style="text-align:center;">
+<img src="assets/primary_major_readiness.png" alt="Primary major readiness heatmap by role family" style="width:95%; max-width:1200px; display:block; margin:0 auto;">
+<p style="text-align:center;">
+<em>Figure 9. Major requirements heatmap.</em>
+</p>
+</div>
+<p>At faculty level, the BIZ heatmap in Figure 9 shows each degree’s
+alignment to role families based on core required modules. Degrees align
+most strongly with natural counterparts (for example, Accountancy with
+Accounting/Audit/Tax, Finance with Finance/Risk/Compliance, Marketing
+with Marketing/Communications). Degrees such as Leadership &amp; Human
+Capital Management and Business Economics show lighter, more distributed
+rows, suggesting broader cross-cutting content without a single dominant
+occupational vocabulary. Overall intensity is modest, with many cells in
+the 0.10 to 0.30 range, indicating weaker retrieval signals from
+conceptual business descriptions than from technically explicit
+computing modules.</p>
+<h3 id="discussion">4.2 Discussion</h3>
+<p>Overall, the hybrid retriever performed best and remains the most
+reliable operating mode for this use case. At module level, performance
+is stronger when descriptions clearly state technical knowledge and
+tools, and weaker for modules framed more around soft skills or rare
+terms. Score values should therefore be interpreted together with
+evidence coverage: a high score supported by many matched rows and
+explicit overlap terms is more reliable than the same score under sparse
+evidence.</p>
+<p>Project-based and hands-on modules generally show stronger alignment
+because their descriptions reference concrete tools, methods, and tasks
+that map directly to job requirements. Higher-level modules (for
+example, 3000/4000-level) also tend to rank well, likely because they
+contain more specialized and industry-relevant content.</p>
+<h3 id="recommendations">4.3 Recommendations</h3>
+<p>Policy recommendations focus on making curriculum alignment more
 explicit, targeted, and proactive. First, universities should strengthen
-skill signalling in module design by clearly stating technical outcomes
-(for example, tools, programming languages, and applied competencies) in
-module titles, descriptions, and metadata. Second, MOE and universities
-can use measured degree-level skill gaps to prioritize curriculum
-refresh where employer demand is consistently high but curriculum
-coverage is weak. Third, degree-to-role evidence can support student
-advising on electives and career pathways. Finally, the dashboard can
-serve as an early-warning system by flagging persistent undersupply
-areas for review.</p>
-<p>Module syllabi and feedback contain richer evidence than public
-module descriptions but are not openly accessible. Closer NUS-MOE
-collaboration on controlled data access would improve analysis quality
-in future iterations.</p>
+explicit skill signalling in module design by clearly stating technical
+outcomes (for example, tools, programming languages, and applied
+competencies) in titles, descriptions, and metadata.</p>
+<p>Second, MOE and universities can use measured degree-level skill gaps
+to guide targeted curriculum refresh, especially where employer demand
+is consistently high but curriculum coverage is weak.</p>
+<p>Third, degree-to-role evidence should be used in advising so students
+can make more informed choices about electives and career pathways.</p>
+<p>Finally, the dashboard can function as an early-warning system by
+flagging persistent undersupply areas, allowing curriculum reviews to
+prioritize role families where labour demand repeatedly outpaces skill
+supply.</p>
 <h2 id="limitations">5. Limitations</h2>
 <p>The model has several practical limitations. First, NUSMods
 descriptions are often brief and may not fully reflect actual teaching
@@ -637,7 +643,7 @@ variation within a role family. Evaluation coverage is also constrained
 by the manually labelled sample size, and external robustness remains
 limited because the current implementation is centered on NUS and not
 yet generalized to other universities.</p>
-<h2 id="future-work">6. Future Work</h2>
+<h3 id="future-work">5.1 Future Work</h3>
 <p>Future work should strengthen data depth, time coverage, and
 modelling granularity. On the education side, incorporating richer
 module evidence (for example, syllabi, assignments, and project briefs)
@@ -650,7 +656,7 @@ represent within-family skill differences. Expanding skill taxonomy and
 alias coverage for emerging and tool-specific terms would also improve
 extraction quality and make skill-gap analysis more complete for
 curriculum review.</p>
-<h2 id="conclusion">7. Conclusion</h2>
+<h2 id="conclusion">6. Conclusion</h2>
 <p>This project provides a scalable and interpretable NLP retrieval
 framework to assess how well university modules align with labour market
 skill demands. The hybrid lexical-semantic approach performs best in
