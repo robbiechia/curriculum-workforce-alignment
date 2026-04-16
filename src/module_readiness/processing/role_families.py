@@ -129,6 +129,20 @@ def _assign_role_cluster(
     cluster_rules: Dict[str, object],
     legacy_family: str,
 ) -> Tuple[str, str, str, str, str]:
+    """Map a single job row to a curated role cluster using a four-tier lookup.
+
+    Priority order:
+    1. SSOC-5 exact map — tightest match, used when an occupation code maps
+       directly to a named cluster (e.g. 25120 → "Software Engineering").
+    2. SSOC-4 exact map — same idea but at the 4-digit level.
+    3. Split rules — a list of keyword/SSOC/category conditions from
+       ``role_clusters.yaml``; the first matching rule wins.
+    4. Legacy family — if the first-pass SSOC family from ``assign_role_families``
+       is already a named cluster, reuse it rather than falling back to "Other".
+
+    Returns a 5-tuple of (cluster, source, broad_family, match_detail, matched_keyword).
+    ``source`` records which tier made the match, useful for diagnostics.
+    """
     ssoc5_exact = cluster_rules.get("ssoc5_exact_map", {})
     ssoc4_exact = cluster_rules.get("ssoc4_exact_map", {})
     broad_map = cluster_rules.get("cluster_broad_family_map", {})
@@ -223,6 +237,16 @@ def _clean_ssoc_title(title: str) -> str:
 
 
 def _load_ssoc_title_maps(config=None) -> Tuple[Dict[str, str], Dict[str, str]]:
+    """Fetch official SSOC-4 and SSOC-5 title strings from the database.
+
+    Returns two dicts mapping digit-only codes to their official occupation
+    titles — e.g. ``{"2512": "Software And Applications Developers", ...}``.
+
+    Intentionally swallows all exceptions and returns empty dicts on failure.
+    This keeps the pipeline runnable when the DB is unavailable or the
+    ``ssoc2024_definitions`` table hasn't been loaded yet; job SSOC names
+    will fall back to title-derived labels instead.
+    """
     from data_utils.db_utils import read_table
     from pathlib import Path as _Path
 
@@ -255,6 +279,32 @@ def assign_role_families(
     role_rules: Dict[str, object],
     cluster_rules: Dict[str, object] | None = None,
 ) -> RoleFamilyResult:
+    """Enrich each job with SSOC codes, display names, and a curated role cluster.
+
+    Runs in two passes:
+
+    **Pass 1 — SSOC family assignment.**  For each job, extracts 4-digit and
+    5-digit SSOC codes from the raw ``ssoc_code`` field.  If the code is
+    well-formed, the 4-digit code is used as the initial family label.  Jobs
+    with missing or malformed codes fall through a chain of fallbacks:
+    SSOC-2 prefix map → title/skill keyword rules → category map → "Other".
+
+    **Pass 2 — Curated cluster assignment.**  Calls ``_assign_role_cluster``
+    to map each job to one of the named role families used in the dashboard
+    (e.g. "Software Engineering", "Data Science / Analytics").  Official SSOC
+    titles from the DB are joined in, with title-derived labels as a fallback.
+
+    Args:
+        jobs: Filtered jobs DataFrame from the ingestion stage.
+        role_rules: Loaded from ``role_family_rules.yaml`` — contains the SSOC
+                    prefix map, category rules, and keyword rules for pass 1.
+        cluster_rules: Loaded from ``role_clusters.yaml`` — drives pass 2.
+                       Treated as empty if not provided.
+
+    Returns:
+        RoleFamilyResult with an enriched jobs DataFrame and diagnostics counts
+        for each assignment source (ssoc, keyword, category, fallback).
+    """
     if jobs.empty:
         return RoleFamilyResult(jobs=jobs.copy(), diagnostics={"role_family_unique": 0.0})
 

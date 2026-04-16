@@ -10,10 +10,32 @@ if TYPE_CHECKING:
 
 
 class ModuleReadinessQueryAPI:
+    """Query interface over a completed pipeline run.
+
+    All methods operate on the in-memory ``ModuleReadinessState`` produced by
+    ``run_pipeline()`` — no database calls are made here.  The retrieval engine
+    and all score tables are already built; this class is purely a read layer.
+    """
+
     def __init__(self, state: "ModuleReadinessState"):
         self.state = state
 
     def search_jobs(self, natural_language_query: str, exp_max: int = 2, top_k: int = 10) -> pd.DataFrame:
+        """Retrieve the most relevant jobs for a free-text query.
+
+        Encodes the query and runs hybrid retrieval against the job corpus.
+        Only jobs with ``experience_years <= exp_max`` are considered, which
+        keeps results relevant to recent graduates.
+
+        Args:
+            natural_language_query: Plain English description, e.g. "data analyst with SQL".
+            exp_max: Maximum years of experience to include (default 2).
+            top_k: Number of jobs to return.
+
+        Returns:
+            DataFrame with one row per job, including RRF score, BM25/embedding
+            component scores, role family, and evidence terms.
+        """
         # Search over the already-scored / normalized job corpus rather than hitting the
         # raw DB tables again.
         allowed_indices = self.state.jobs[
@@ -65,6 +87,30 @@ class ModuleReadinessQueryAPI:
         role_family: str | None = None,
         allowed_module_codes: Sequence[str] | None = None,
     ) -> pd.DataFrame:
+        """Recommend modules relevant to a query or a set of specific job IDs.
+
+        Accepts two input forms:
+        - A string — encoded and used directly as the retrieval query.
+        - A list of job ID strings — the engine aggregates evidence across all
+          supplied jobs before ranking modules, giving a richer signal than a
+          single text query when you already have a target job set.
+
+        ``role_family`` and ``allowed_module_codes`` both narrow the candidate
+        pool before retrieval runs, not after — so ``top_k`` refers to the
+        final output size, not a post-filter of a larger retrieval.
+
+        Args:
+            query_or_job_ids: Free-text query or a list of job ID strings.
+            top_k: Number of modules to return.
+            role_family: If set, only modules that scored against this role
+                         family are considered.
+            allowed_module_codes: Explicit allowlist of module codes, useful
+                                  for restricting results to a degree's curriculum.
+
+        Returns:
+            DataFrame with one row per module, including similarity score, role
+            family assignment, and evidence terms.
+        """
         allowed_indices: np.ndarray | None = None
         allowed_codes: set[str] | None = None
         if allowed_module_codes:
@@ -169,6 +215,12 @@ class ModuleReadinessQueryAPI:
         return pd.DataFrame(rows)
 
     def get_module_role_profile(self, module_code: str, top_families: int = 5) -> pd.DataFrame:
+        """Return the top role families for a single module, sorted by score.
+
+        Looks up precomputed scores from the pipeline — no retrieval is run.
+        Useful for understanding a module's alignment profile across all roles,
+        not just its single best match.
+        """
         # This is a simple lookup over precomputed module-role scores.
         subset = self.state.module_role_scores[
             self.state.module_role_scores["module_code"].str.upper() == module_code.upper()

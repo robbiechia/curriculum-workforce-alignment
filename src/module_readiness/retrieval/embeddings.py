@@ -11,6 +11,18 @@ from sentence_transformers import SentenceTransformer
 
 @dataclass
 class SentenceEmbeddingService:
+    """Sentence embedding encoder with disk-based caching.
+
+    Wraps a ``sentence-transformers`` model and caches the resulting numpy
+    arrays as ``.npz`` files keyed by a SHA-256 hash of the model name,
+    namespace, and full text list.  On a cache hit the model is never called,
+    which makes subsequent pipeline runs much faster once the corpus is stable.
+
+    The ``namespace`` parameter on ``encode_many`` is what keeps job, module,
+    and query embeddings from sharing a cache file even if their raw text
+    happens to be identical.
+    """
+
     model_name: str
     cache_dir: Path
     batch_size: int = 32
@@ -37,6 +49,21 @@ class SentenceEmbeddingService:
         return hashlib.sha256(raw).hexdigest()
 
     def encode_many(self, texts: Sequence[str], namespace: str) -> np.ndarray:
+        """Encode a list of texts, returning a (N, D) float array.
+
+        Checks the disk cache first.  If the cached file exists and loads
+        cleanly, the model is skipped entirely.  Otherwise encodes the full
+        list and saves the result.
+
+        Args:
+            texts: Texts to encode — order matters since the cache key is
+                   computed over the full list.
+            namespace: A short label like ``"jobs"`` or ``"modules"`` that
+                       scopes the cache file and prevents cross-corpus collisions.
+
+        Returns:
+            Float array of shape (len(texts), embedding_dimension), L2-normalised.
+        """
         if not texts:
             return np.zeros((0, self.dimension), dtype=float)
 
@@ -62,6 +89,11 @@ class SentenceEmbeddingService:
         return embeddings
 
     def encode_one(self, text: str) -> np.ndarray:
+        """Encode a single string and return a 1-D float array of length ``dimension``.
+
+        Routes through ``encode_many`` under the ``"query"`` namespace so
+        ad-hoc query embeddings use the same cache machinery as corpus embeddings.
+        """
         # Queries reuse the exact same code path as corpus embeddings for consistency.
         embeddings = self.encode_many(texts = [text], namespace="query")
         if embeddings.size == 0:

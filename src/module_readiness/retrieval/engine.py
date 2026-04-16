@@ -17,6 +17,11 @@ from .text import build_overlap_terms, build_retrieval_text, tokenize_text
 RetrievalMode = Literal["hybrid", "bm25", "embedding"]
 VALID_RETRIEVAL_MODES = ("hybrid", "bm25", "embedding")
 
+# Number of overlapping keyword terms kept as human-readable evidence text on
+# each retrieved result. Increasing this makes evidence strings verbose without
+# adding meaningful signal.
+EVIDENCE_TERMS_TOP_N = 6
+
 
 def _build_bm25_index(
     tokenized_docs: List[List[str]],
@@ -41,6 +46,22 @@ def _candidate_indices(
     relative_min_score: float,
     allowed_indices: np.ndarray | None = None,
 ) -> np.ndarray:
+    """Return the indices that pass both score thresholds.
+
+    A candidate must clear an absolute floor (e.g. BM25 score ≥ 0.5) AND a
+    score-relative floor (e.g. ≥ 10 % of the highest score in this query).
+    Using both prevents noisy low-quality matches from entering fusion while
+    still adapting to queries that produce universally weak BM25 scores.
+
+    Args:
+        scores: Full score array over the corpus.
+        absolute_min_score: Hard lower bound — any score below this is excluded.
+        relative_min_score: Fraction of the max score that a candidate must reach.
+        allowed_indices: Optional pre-filter; only indices in this set are considered.
+
+    Returns:
+        Array of integer indices that satisfy both thresholds.
+    """
     if scores.size == 0:
         return np.array([], dtype=int)
 
@@ -192,7 +213,7 @@ class HybridRetrievalEngine:
                     "embedding_rank": int(embedding_ranks[idx]) if embedding_ranks[idx] > 0 else None,
                     "rrf_score": float(rrf_scores[idx]),
                     "evidence_terms": " | ".join(
-                        build_overlap_terms(query_tokens, corpus.tokens[idx], top_n=6)
+                        build_overlap_terms(query_tokens, corpus.tokens[idx], top_n=EVIDENCE_TERMS_TOP_N)
                     ),
                 }
             )
@@ -225,6 +246,11 @@ class HybridRetrievalEngine:
         *,
         allowed_indices: np.ndarray | None = None,
     ) -> pd.DataFrame:
+        """Given a job index, return the top_k modules most relevant to that job.
+
+        Mirror of rank_jobs_from_module — used during retrieval evaluation when
+        we want to invert the query direction (job → modules rather than module → jobs).
+        """
         return self._rank_against_corpus(
             self.artifacts.jobs.tokens[job_index],
             self.artifacts.jobs.embeddings[job_index],
@@ -374,7 +400,7 @@ class HybridRetrievalEngine:
                     "embedding_rank": embedding_rank,
                     "rrf_score": float(total_rrf[idx]),
                     "evidence_terms": " | ".join(
-                        build_overlap_terms(merged_tokens, self.artifacts.modules.tokens[idx], top_n=6)
+                        build_overlap_terms(merged_tokens, self.artifacts.modules.tokens[idx], top_n=EVIDENCE_TERMS_TOP_N)
                     ),
                 }
             )
@@ -386,6 +412,19 @@ def _build_retrieval_text_series(
     *,
     base_columns: Sequence[str],
 ) -> pd.Series:
+    """Build a retrieval-ready text string for each row in frame.
+
+    Concatenates the specified base columns then appends normalized technical
+    skills so that exact skill tokens boost BM25 recall without duplicating
+    the full description text.
+
+    Args:
+        frame: DataFrame of jobs or modules.
+        base_columns: Column names whose text content forms the base query string.
+
+    Returns:
+        A string Series aligned to frame.index.
+    """
     values = []
     for _, row in frame.iterrows():
         base_text = " ".join(
@@ -407,6 +446,21 @@ def build_retrieval_artifacts(
     jobs: pd.DataFrame,
     modules: pd.DataFrame,
 ) -> RetrievalArtifacts:
+    """Build all retrieval artifacts needed by HybridRetrievalEngine.
+
+    Constructs BM25 indices and sentence embeddings for both the job and module
+    corpora. Results are cached on disk (keyed by a SHA-256 of the text) so
+    repeated pipeline runs skip re-encoding unchanged documents.
+
+    Args:
+        config: Pipeline configuration (model name, cache paths, BM25 params, etc.).
+        jobs: Filtered, enriched jobs DataFrame from the ingestion stage.
+        modules: Consolidated modules DataFrame from the processing stage.
+
+    Returns:
+        RetrievalArtifacts containing CorpusArtifacts for jobs and modules,
+        the shared embedding service, and diagnostics.
+    """
     jobs = jobs.copy()
     modules = modules.copy()
 

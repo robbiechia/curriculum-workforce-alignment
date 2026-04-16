@@ -11,6 +11,18 @@ from ..retrieval import HybridRetrievalEngine
 
 OTHER_NEAR_TIE_MARGIN = 0.02
 
+# Number of top-ranked jobs used to compute the concentration ratio.
+# A higher window would dilute the signal from the very best matches.
+CONCENTRATION_WINDOW = 5
+
+# A concentration ratio above this value suggests the module scores are clustered
+# at the top, with a long tail of weak matches — a bimodal-like distribution.
+BIMODALITY_CONCENTRATION_THRESHOLD = 1.5
+
+# IQR must also exceed this floor for a distribution to be flagged as bimodal;
+# prevents flagging when all scores are tightly bunched near zero.
+BIMODALITY_IQR_THRESHOLD = 0.3
+
 
 @dataclass
 class ScoringResult:
@@ -43,6 +55,25 @@ def _aggregate_group_scores(
     group_cols: List[str],
     support_prior: float,
 ) -> pd.DataFrame:
+    """Aggregate per-job RRF scores into a per-module-group alignment score.
+
+    For each (module, group) pair — where group is either a role family or an
+    SSOC code — takes the top-K retrieved jobs by RRF score and averages them.
+    The raw average is then dampened by a support weight that penalises groups
+    backed by very few matching jobs (see _support_weight).
+
+    Also computes distributional statistics (Q1/median/Q3/IQR, concentration
+    ratio, bimodality flag) so downstream consumers can assess confidence.
+
+    Args:
+        module_job_scores: Long-format evidence table (one row per module-job pair).
+        top_k: Number of top jobs to average per module-group pair.
+        group_cols: Columns that define the grouping dimension (e.g. role_family).
+        support_prior: Controls how aggressively low-evidence pairs are penalised.
+
+    Returns:
+        DataFrame with one row per (module, group) and aggregated score columns.
+    """
     if module_job_scores.empty:
         return pd.DataFrame(
             columns=[
@@ -80,11 +111,14 @@ def _aggregate_group_scores(
         q3 = _safe_quantile(values, 0.75)
         iqr = q3 - q1
 
-        top5 = values[:5] if values.size >= 5 else values
+        top_window = values[:CONCENTRATION_WINDOW] if values.size >= CONCENTRATION_WINDOW else values
         topk_mean = float(values.mean()) if values.size else 0.0
-        top5_mean = float(top5.mean()) if top5.size else 0.0
-        concentration_ratio = (top5_mean / topk_mean) if topk_mean > 0 else 0.0
-        bimodality_flag = int((concentration_ratio > 1.5) and (iqr > 0.3))
+        top_window_mean = float(top_window.mean()) if top_window.size else 0.0
+        concentration_ratio = (top_window_mean / topk_mean) if topk_mean > 0 else 0.0
+        bimodality_flag = int(
+            (concentration_ratio > BIMODALITY_CONCENTRATION_THRESHOLD)
+            and (iqr > BIMODALITY_IQR_THRESHOLD)
+        )
 
         row: Dict[str, float | str] = {
             "module_code": str(g["module_code"].iloc[0]),
@@ -111,6 +145,22 @@ def _apply_other_near_tie_preference(
     module_role_scores: pd.DataFrame,
     margin: float = OTHER_NEAR_TIE_MARGIN,
 ) -> pd.DataFrame:
+    """Demote the "Other" role cluster when a named cluster is nearly as strong.
+
+    Without this adjustment, a module with a weak but broad signal could be
+    labelled "Other" in the summary even though a named cluster (e.g. "Data &
+    Analytics") scores almost as high. The function adds a selection_score
+    column that suppresses "Other" whenever the gap to the best named cluster
+    is within `margin`, ensuring summaries prefer interpretable labels.
+
+    Args:
+        module_role_scores: Output of _aggregate_group_scores for role families.
+        margin: Score gap within which "Other" is demoted. Defaults to
+                OTHER_NEAR_TIE_MARGIN (0.02).
+
+    Returns:
+        DataFrame with selection_score and role_rank_within_module columns added.
+    """
     if module_role_scores.empty:
         return module_role_scores.copy()
 
@@ -150,6 +200,26 @@ def compute_scores(
     modules: pd.DataFrame,
     retrieval: HybridRetrievalEngine,
 ) -> ScoringResult:
+    """Run the full module-to-job scoring pipeline and return aggregated results.
+
+    For every module, retrieves the top-N most relevant jobs using the hybrid
+    engine, then aggregates the resulting RRF scores into two views:
+      - module_ssoc5_scores: grouped by fine-grained SSOC occupation codes
+      - module_role_scores: grouped by curated role family clusters
+
+    The role score view additionally applies near-tie preference so that named
+    clusters are preferred over "Other" in downstream summaries.
+
+    Args:
+        config: Pipeline configuration (top_k, retrieval_top_n, support_prior, etc.).
+        jobs: Enriched jobs DataFrame with role family and SSOC assignments.
+        modules: Consolidated modules DataFrame.
+        retrieval: Pre-built HybridRetrievalEngine with BM25 and embedding indices.
+
+    Returns:
+        ScoringResult with per-job evidence, per-SSOC scores, per-role scores,
+        the raw RRF matrix, and diagnostics.
+    """
     top_n = max(int(config.top_k) * 4, int(config.retrieval_top_n))
     module_rows: List[Dict[str, float | str]] = []
     rrf_score_matrix = np.zeros((len(modules), len(jobs)), dtype=float)

@@ -8,6 +8,11 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
+# Maximum number of skills surfaced per role family in the gap analysis table.
+# Keeping this bounded prevents the gap view from being dominated by roles with
+# very broad skill requirements (e.g. "Business Analysis").
+GAP_ANALYSIS_MAX_SKILLS_PER_ROLE = 15
+
 
 @dataclass
 class AggregationResult:
@@ -40,6 +45,12 @@ def _degree_profile(degree: str, profile_keywords: Dict[str, List[str]]) -> str:
 
 
 def _build_ssoc4_fallback_labels(module_ssoc5_scores: pd.DataFrame | None) -> pd.DataFrame:
+    """Derive a display label from SSOC-4 data for modules whose top role cluster is "Other".
+
+    Only used to improve the readability of the module summary — the underlying
+    role cluster assignments are not changed.  For each module, picks the SSOC-4
+    name associated with the highest-scoring (and best-evidenced) SSOC-5 group.
+    """
     columns = ["module_code", "ssoc4_fallback_name"]
     if module_ssoc5_scores is None or module_ssoc5_scores.empty:
         return pd.DataFrame(columns=columns)
@@ -97,6 +108,18 @@ def _build_gap_summary(
     module_role_scores: pd.DataFrame,
     top_roles_per_module: int = 2,
 ) -> pd.DataFrame:
+    """Compute demand vs supply skill gaps at the role-family level.
+
+    Demand is measured by how often each skill appears across job postings for
+    a given role, normalised to a frequency in [0, 1].  Supply is measured by
+    how often the same skill appears in modules that score highly against that
+    role (each module contributes to at most ``top_roles_per_module`` roles).
+
+    The gap score is simply ``demand - supply``, so positive values indicate
+    undersupply (curriculum isn't covering what employers want) and negative
+    values indicate oversupply.  Results are capped at the top
+    ``GAP_ANALYSIS_MAX_SKILLS_PER_ROLE`` skills per role by demand frequency.
+    """
     if jobs.empty or modules.empty or module_role_scores.empty:
         return pd.DataFrame(
             columns=[
@@ -154,7 +177,7 @@ def _build_gap_summary(
         demand_total = sum(demand_counter.values()) or 1.0
         supply_total = sum(supply_counter.values()) or 1.0
 
-        for skill, demand_value in demand_counter.most_common(15):
+        for skill, demand_value in demand_counter.most_common(GAP_ANALYSIS_MAX_SKILLS_PER_ROLE):
             demand_score = float(demand_value / demand_total)
             supply_score = float(supply_counter.get(skill, 0.0) / supply_total)
             gap_score = demand_score - supply_score
@@ -186,6 +209,25 @@ def build_indicators(
     role_rules: Dict[str, object],
     module_ssoc5_scores: pd.DataFrame | None = None,
 ) -> AggregationResult:
+    """Produce the module summary and skill gap tables from pre-computed scores.
+
+    Takes the long-format ``module_role_scores`` table (one row per
+    module × role) and collapses it into two outputs:
+
+    - ``module_summary``: one row per module with its single best role label
+      and score.  If the best role is "Other" and SSOC-4 data is available,
+      the display name is swapped for a more informative occupation title.
+    - ``module_gap_summary``: demand vs supply skill gaps per role family,
+      produced by ``_build_gap_summary``.
+
+    Args:
+        jobs: Enriched jobs DataFrame with skills and role family assignments.
+        modules: Consolidated modules DataFrame with skill columns.
+        module_role_scores: Output of ``compute_scores`` — one row per module × role.
+        role_rules: Role rules YAML (currently unused here but kept for interface consistency).
+        module_ssoc5_scores: Optional SSOC-5 score table used to derive fallback
+                             display labels for modules landing in "Other".
+    """
     out = module_role_scores.copy()
 
     if out.empty:

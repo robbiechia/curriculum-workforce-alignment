@@ -95,6 +95,18 @@ class JobQueryRunResult:
 
 @dataclass
 class DashboardQueryBackend:
+    """Streamlit-facing query layer that wraps ModuleReadinessQueryAPI.
+
+    Unlike the base API — which returns lean retrieval results — this class
+    enriches every job and module result with display metadata (descriptions,
+    skills, salary, evidence counts) and handles degree-scoped filtering so
+    the dashboard can restrict recommendations to a single programme's required
+    curriculum.
+
+    Constructed via ``load_dashboard_query_backend()`` rather than directly;
+    that function reads the pipeline output CSVs and rebuilds retrieval artifacts.
+    """
+
     state: ModuleReadinessState
     api: ModuleReadinessQueryAPI
     module_job_evidence: pd.DataFrame
@@ -134,6 +146,11 @@ class DashboardQueryBackend:
         return tech_vocab, soft_vocab
 
     def _enrich_jobs(self, jobs: pd.DataFrame) -> pd.DataFrame:
+        """Join display metadata onto a raw retrieval result frame.
+
+        The retrieval output only has scores and identifiers; this adds skills,
+        salary, and a truncated description summary for the dashboard cards.
+        """
         if jobs.empty:
             return jobs
         meta_cols = [
@@ -214,6 +231,16 @@ class DashboardQueryBackend:
         job_ids: Sequence[str],
         degree_id: str | None = None,
     ) -> pd.DataFrame:
+        """Join metadata, job-match counts, and skill overlap onto a module result frame.
+
+        Beyond what ``_enrich_jobs`` does for jobs, this also computes
+        ``technical_skill_overlap`` and ``soft_skill_overlap`` — skills that
+        appear in both the module and the retrieved jobs — so the dashboard can
+        show exactly where a module aligns to the target role.
+
+        If ``degree_id`` is supplied, an ``in_selected_degree`` boolean column
+        is added so the UI can flag which results are already in the curriculum.
+        """
         if modules.empty:
             return modules
 
@@ -273,6 +300,17 @@ class DashboardQueryBackend:
         exp_max: int = 2,
         degree_id: str | None = None,
     ) -> JobQueryRunResult:
+        """Run the full job-search-then-module-recommendation flow.
+
+        1. Retrieves the top ``top_job_k`` jobs matching the query.
+        2. Uses the returned job IDs (not the raw query text) to recommend
+           modules — this gives a richer signal because the module retrieval
+           aggregates evidence across all matched jobs.
+        3. Enriches both result sets with display metadata.
+
+        If ``degree_id`` is provided, module recommendations are restricted to
+        modules that appear in that degree's required curriculum.
+        """
         jobs = self.api.search_jobs(
             natural_language_query=natural_language_query,
             exp_max=int(exp_max),
@@ -307,6 +345,21 @@ def load_dashboard_query_backend(
     output_dir: Path | None = None,
     config: PipelineConfig | None = None,
 ) -> DashboardQueryBackend:
+    """Build a DashboardQueryBackend from pipeline output CSVs.
+
+    Reads all required tables from the ``outputs/`` directory, coerces types,
+    then rebuilds the retrieval artifacts (BM25 index + embeddings).  The
+    embedding step hits the disk cache so it's fast after the first run.
+
+    This is the intended entry point for the Streamlit app and any tooling
+    that wants query access without re-running the full pipeline.
+
+    Args:
+        output_dir: Path to the directory containing pipeline CSVs.  Defaults
+                    to ``config.output_dir``.
+        config: Pipeline config to use for retrieval parameters.  Defaults to
+                ``PipelineConfig.from_file()``.
+    """
     config = config or PipelineConfig.from_file()
     output_dir = (output_dir or config.output_dir).resolve()
 

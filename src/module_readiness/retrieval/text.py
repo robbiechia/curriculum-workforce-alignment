@@ -42,6 +42,12 @@ def normalize_text(text: str) -> str:
 
 
 def tokenize_text(text: str, min_len: int = 2) -> List[str]:
+    """Tokenize and filter a string into a list of index-ready tokens.
+
+    Passes through ``normalize_text`` first, then drops stopwords and tokens
+    shorter than ``min_len``.  The same function is called for jobs, modules,
+    and live queries so the BM25 index and query token spaces always match.
+    """
     tokens = []
     for token in normalize_text(text).split():
         if len(token) < min_len or token in DEFAULT_STOPWORDS:
@@ -55,6 +61,13 @@ def build_overlap_terms(
     doc_tokens: Sequence[str],
     top_n: int = 6,
 ) -> List[str]:
+    """Return the tokens that appear in both query and document, ranked by doc frequency.
+
+    Used to produce human-readable evidence strings on retrieved results —
+    the returned tokens explain *why* a job or module ranked highly for a given
+    query.  Tokens are ordered by how often they appear in the document (most
+    frequent first) so the most distinctive shared terms surface at the top.
+    """
     if not query_tokens or not doc_tokens:
         return []
 
@@ -87,6 +100,14 @@ def build_retrieval_text(
     base_text: str,
     technical_skills: Iterable[str],
 ) -> str:
+    """Combine free text and skill tokens into a single retrieval string.
+
+    Skills are deliberately appended as a separate "technical skills ..." section
+    rather than just included in the base text.  This gives BM25 an extra hit for
+    exact skill matches — e.g. a module mentioning "python" gets a double reward
+    when the job also lists "python" as a skill — without requiring a separate
+    skill-specific index.
+    """
     # Skills are appended as an explicit section so BM25 can reward exact skill overlap
     # without needing a separate index.
     parts = [

@@ -10,6 +10,28 @@ import pandas as pd
 
 @dataclass
 class PipelineConfig:
+    """Runtime configuration for the module readiness pipeline.
+
+    Fields are grouped into four concerns:
+
+    **Job corpus filters** — ``exp_max`` and ``primary_ssec_eqa`` narrow the job
+    pool to entry-level graduates so module alignment scores stay relevant to the
+    policy question of university preparedness.
+
+    **Retrieval tuning** — BM25 (``bm25_k1``, ``bm25_b``, thresholds) and
+    embedding (``embedding_min_similarity``, ``embedding_relative_min``) params
+    control which jobs are fused via RRF. ``rrf_k`` and ``retrieval_top_n`` set
+    the fusion depth. ``role_support_prior`` damps scores backed by very few jobs.
+
+    **Embedding setup** — model name, batch size, and a dedicated cache directory.
+    Embeddings are SHA-256 keyed on text + namespace, so re-runs skip re-encoding.
+
+    **File and directory paths** — all stored as relative ``Path`` objects that
+    ``resolve()`` expands to absolute paths against ``project_root``.  Call
+    ``from_file()`` rather than constructing this directly; it handles the
+    path resolution and YAML merge automatically.
+    """
+
     # These defaults are intentionally centralized here so both scripts and tests can
     # construct a complete config object without hand-populating every field.
     project_root: Path = Path(__file__).resolve().parents[3]
@@ -56,6 +78,11 @@ class PipelineConfig:
     persist_degree_outputs_to_db: bool = False
 
     def resolve(self) -> "PipelineConfig":
+        """Expand all relative paths to absolute ones and create output directories.
+
+        Call this once after construction. ``from_file()`` does it automatically,
+        so manual calls are only needed when constructing ``PipelineConfig()`` directly.
+        """
         # Resolve all repo-relative paths once up front so downstream modules do not
         # have to reason about the caller's current working directory.
         self.config_dir = (self.project_root / self.config_dir).resolve()
@@ -78,6 +105,17 @@ class PipelineConfig:
 
     @classmethod
     def from_file(cls, config_path: Path | None = None) -> "PipelineConfig":
+        """Load config from a YAML file, falling back to defaults for any missing keys.
+
+        Starts from the dataclass defaults, resolves paths, then overlays any keys
+        present in the YAML file.  Paths are re-resolved after the merge so values
+        set in YAML are also expanded correctly.  If the config file doesn't exist,
+        the resolved defaults are returned as-is — no error is raised.
+
+        Args:
+            config_path: Path to the pipeline config YAML.  Defaults to
+                         ``config/pipeline_config.yaml`` under ``project_root``.
+        """
         base = cls()
         base.resolve()
 
@@ -120,6 +158,10 @@ def write_dataframe_with_fallback(df: pd.DataFrame, parquet_path: Path) -> Tuple
 
 
 def load_json_file(path: Path) -> Dict[str, Any]:
+    """Read a JSON file and return its contents as a dict.
+
+    Returns an empty dict if the file doesn't exist, rather than raising.
+    """
     if not path.exists():
         return {}
     return json.loads(path.read_text(encoding="utf-8-sig"))
@@ -127,5 +169,6 @@ def load_json_file(path: Path) -> Dict[str, Any]:
 
 
 def dump_json_file(path: Path, payload: Dict[str, Any]) -> None:
+    """Write a dict to a JSON file, creating parent directories as needed."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

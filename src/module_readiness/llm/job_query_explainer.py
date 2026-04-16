@@ -59,6 +59,13 @@ def build_job_query_prompt_context(
     *,
     degree_label: str | None = None,
 ) -> str:
+    """Serialise retrieval results into a JSON string for use as an LLM prompt.
+
+    Caps at the top 5 jobs and top 8 modules to keep the prompt within a
+    reasonable token budget.  Descriptions are truncated to 220 characters
+    and skill lists are capped at 8 (technical) / 6 (soft) items for the same
+    reason.  Returns a formatted JSON string ready to embed in a user message.
+    """
     job_records = []
     for _, row in jobs.head(5).iterrows():
         job_records.append(
@@ -110,6 +117,16 @@ def build_fallback_job_query_explanation(
     *,
     degree_label: str | None = None,
 ) -> str:
+    """Build a deterministic explanation without calling an LLM.
+
+    Aggregates the most common role families and skill terms across the
+    retrieved jobs and modules, then assembles them into a short markdown
+    summary.  Always includes a caution note that results are retrieval
+    evidence, not guaranteed outcomes.
+
+    Used as the default when ``LLM_API_KEY`` is not set, and as the fallback
+    when the LLM call fails.
+    """
     if jobs.empty:
         return (
             f"No matching early-career jobs were retrieved for `{natural_language_query}`. "
@@ -172,6 +189,14 @@ class JobQueryExplanation:
 
 @dataclass
 class OpenAICompatibleLLMClient:
+    """Minimal HTTP client for any OpenAI-compatible chat completions endpoint.
+
+    Uses only the standard library (``urllib``) so there's no SDK dependency.
+    Configure via environment variables — see ``from_env()`` for the expected
+    names.  The ``configured`` property lets callers check whether credentials
+    are present before attempting a generation call.
+    """
+
     api_key: str
     base_url: str
     model: str
@@ -179,6 +204,12 @@ class OpenAICompatibleLLMClient:
 
     @classmethod
     def from_env(cls) -> "OpenAICompatibleLLMClient":
+        """Build a client from environment variables.
+
+        Checks ``LLM_API_KEY`` first, then falls back to ``OPENAI_API_KEY``.
+        ``LLM_BASE_URL`` / ``LLM_MODEL`` let you point at a non-OpenAI endpoint
+        (e.g. Azure, a local Ollama server) without code changes.
+        """
         api_key = os.environ.get("LLM_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
         base_url = (
             os.environ.get("LLM_BASE_URL")
@@ -210,6 +241,11 @@ class OpenAICompatibleLLMClient:
         temperature: float = 0.2,
         max_tokens: int = 700,
     ) -> str:
+        """Send a chat completion request and return the response text.
+
+        Raises ``RuntimeError`` on HTTP errors, network failures, or empty
+        responses — callers are expected to catch this and fall back gracefully.
+        """
         if not self.configured:
             raise RuntimeError("LLM credentials are not configured.")
 
@@ -259,6 +295,24 @@ def explain_job_query(
     degree_label: str | None = None,
     client: OpenAICompatibleLLMClient | None = None,
 ) -> JobQueryExplanation:
+    """Generate a markdown explanation for a job query result.
+
+    Always builds the deterministic fallback first so there's something to
+    show regardless of LLM availability.  Then attempts an LLM call if the
+    client is configured.  Any exception from the LLM (network error, bad
+    response, rate limit) is caught and recorded in ``JobQueryExplanation.error``
+    — the fallback is returned in that case rather than propagating the error.
+
+    Args:
+        natural_language_query: The original query string from the user.
+        jobs: Retrieved jobs DataFrame from the query backend.
+        modules: Recommended modules DataFrame from the query backend.
+        degree_label: Human-readable degree name for context in the explanation.
+        client: LLM client to use.  Defaults to ``OpenAICompatibleLLMClient.from_env()``.
+
+    Returns:
+        JobQueryExplanation with a ``markdown`` field ready to render in Streamlit.
+    """
     fallback = build_fallback_job_query_explanation(
         natural_language_query=natural_language_query,
         jobs=jobs,

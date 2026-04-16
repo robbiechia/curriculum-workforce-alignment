@@ -9,6 +9,8 @@ from typing import Dict, Iterable, List
 
 import pandas as pd
 
+from loguru import logger
+
 from ..config.settings import PipelineConfig
 from data_utils.db_utils import read_table
 
@@ -132,7 +134,13 @@ def load_jobs(config: PipelineConfig, skill_aliases: Dict[str, str]) -> JobsInge
 
         try:
             exp = int(float(job["min_experience_years"])) if job["min_experience_years"] is not None else None
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
+            logger.warning(
+                "Could not parse min_experience_years for job '{}' (value: {!r}): {}",
+                job.get("job_id", "<unknown>"),
+                job["min_experience_years"],
+                exc,
+            )
             exp = None
 
         rows.append({
