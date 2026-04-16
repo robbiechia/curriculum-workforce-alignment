@@ -8,13 +8,20 @@ The pipeline ingests MyCareersFuture job postings and NUS module data, runs hybr
 
 ## How to run our pipeline and dashboard
 
-Start by cloning the repo and setting up your .env file with required credentials
+Start by cloning the repo and ensure you are in the project root directory.
+
+```bash
+git clone <repo_url>
+cd DSA4264-text-group-4
+```
+
+Set up your .env file with required credentials by copying the example file and adding your Supabase PostgreSQL connection string and OpenAI API key.
 
 ```bash
 cp .env.example .env
 ```
 
-Add in your Supabase PostgreSQL connection string and OpenAI API key. Then run the following commands to set up the environment, run the pipeline, and launch the dashboard:
+Then run the following commands to set up the environment, run the pipeline, and launch the dashboard:
 
 ```bash
 bash setup.sh
