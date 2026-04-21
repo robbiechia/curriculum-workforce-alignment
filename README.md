@@ -115,7 +115,7 @@ To refresh the lightweight deployment bundle after a completed pipeline run, exe
 python scripts/build_app_data_bundle.py
 ```
 
-This writes a slim parquet bundle to `app_data/` for Streamlit Community Cloud. The dashboard prefers `app_data/` at runtime and falls back to `outputs/` locally.
+This writes a slim compressed pickle bundle to `app_data/` for Streamlit Community Cloud. The dashboard prefers `app_data/` at runtime and falls back to `outputs/` locally.
 
 ## 4. Generating MOE review charts
 
@@ -143,4 +143,4 @@ The dashboard has two pages:
 - **Curriculum Readiness** (main page): Module and degree alignment analysis, skill gap view, role distribution charts.
 - **Career Query Assistant** (`pages/1_Career Query Assistant.py`): Natural-language job search — type a role description and get matching early-career jobs and relevant NUS modules.
 
-The dashboard reads from `app_data/` first and falls back to `outputs/` when the deployment bundle is absent. This lets Streamlit Community Cloud serve the app without shipping the full pipeline artifacts.
+The dashboard reads from `app_data/` first and falls back to `outputs/` when the deployment bundle is absent. This lets Streamlit Community Cloud serve the app without shipping the full pipeline artifacts or requiring `pyarrow` in production.

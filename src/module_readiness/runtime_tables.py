@@ -24,13 +24,21 @@ def read_runtime_table(table_name: str, data_dirs: Sequence[Path]) -> pd.DataFra
     """Read a runtime app table from app_data/ or outputs/."""
     stem = Path(table_name).stem
     for data_dir in data_dirs:
-        parquet_path = data_dir / f"{stem}.parquet"
-        if parquet_path.exists():
-            return _normalize_frame(pd.read_parquet(parquet_path))
+        pickle_path = data_dir / f"{stem}.pkl.gz"
+        if pickle_path.exists():
+            return _normalize_frame(pd.read_pickle(pickle_path, compression="gzip"))
 
+        # Prefer CSV over parquet so the deployed app does not require pyarrow.
         csv_path = data_dir / f"{stem}.csv"
         if csv_path.exists():
             return _normalize_frame(_read_csv_with_fallback(csv_path))
+
+        parquet_path = data_dir / f"{stem}.parquet"
+        if parquet_path.exists():
+            try:
+                return _normalize_frame(pd.read_parquet(parquet_path))
+            except ImportError:
+                pass
 
     searched = ", ".join(str(Path(path).resolve()) for path in data_dirs)
     raise FileNotFoundError(f"Could not find runtime table '{stem}' in: {searched}")

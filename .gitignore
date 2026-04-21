@@ -15,7 +15,7 @@ outputs/
 *.parquet
 *.xlsx
 !app_data/
-!app_data/*.parquet
+!app_data/*.pkl.gz
 !cache/
 cache/*
 !cache/embeddings/

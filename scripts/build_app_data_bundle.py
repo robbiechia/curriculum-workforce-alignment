@@ -63,7 +63,7 @@ def main() -> None:
 
     for stem in TABLES_TO_COPY:
         df = _read_table(source_dir, stem)
-        _write_table(df, dest_dir / f"{stem}.parquet")
+        _write_table(df, dest_dir / f"{stem}.pkl.gz")
 
     degree_module_map = _read_table(
         source_dir,
@@ -77,17 +77,31 @@ def main() -> None:
     degree_module_map = degree_module_map.loc[
         ~degree_module_map["is_unrestricted_elective"]
     ].reset_index(drop=True)
-    _write_table(degree_module_map, dest_dir / "degree_module_map.parquet")
+    _write_table(degree_module_map, dest_dir / "degree_module_map.pkl.gz")
 
     module_job_evidence = _read_table(
         source_dir,
         "module_job_evidence",
         usecols=MODULE_JOB_EVIDENCE_COLUMNS,
     )
-    _write_table(module_job_evidence, dest_dir / "module_job_evidence.parquet")
+    _write_table(module_job_evidence, dest_dir / "module_job_evidence.pkl.gz")
 
 
 def _read_table(source_dir: Path, stem: str, usecols: list[str] | None = None) -> pd.DataFrame:
+    csv_path = source_dir / f"{stem}.csv"
+    if csv_path.exists():
+        return pd.read_csv(csv_path, usecols=usecols, keep_default_na=False)
+
+    pickle_path = source_dir / f"{stem}.pkl.gz"
+    if pickle_path.exists():
+        df = pd.read_pickle(pickle_path, compression="gzip")
+        if usecols is not None:
+            missing = [column for column in usecols if column not in df.columns]
+            if missing:
+                raise KeyError(f"{pickle_path.name} is missing columns: {missing}")
+            df = df[usecols].copy()
+        return df
+
     parquet_path = source_dir / f"{stem}.parquet"
     if parquet_path.exists():
         df = pd.read_parquet(parquet_path)
@@ -98,11 +112,7 @@ def _read_table(source_dir: Path, stem: str, usecols: list[str] | None = None) -
             df = df[usecols].copy()
         return df
 
-    csv_path = source_dir / f"{stem}.csv"
-    if csv_path.exists():
-        return pd.read_csv(csv_path, usecols=usecols, keep_default_na=False)
-
-    raise FileNotFoundError(f"Could not find {stem}.csv or {stem}.parquet under {source_dir}")
+    raise FileNotFoundError(f"Could not find {stem}.csv, {stem}.pkl.gz, or {stem}.parquet under {source_dir}")
 
 
 def _coerce_bool(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
@@ -118,7 +128,7 @@ def _coerce_bool(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
 
 def _write_table(df: pd.DataFrame, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(path, index=False)
+    df.to_pickle(path, compression="gzip")
     size_mb = path.stat().st_size / (1024 * 1024)
     print(f"[write] {path.relative_to(PROJECT_ROOT)} ({size_mb:.2f} MB)")
 
