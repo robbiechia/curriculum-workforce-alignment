@@ -18,6 +18,9 @@ python -m pip install --upgrade pip
 echo "Installing requirements..."
 python -m pip install -r requirements.txt
 
+echo "Installing Streamlit for local development..."
+python -m pip install streamlit==1.50.0
+
 echo "Registering src/ on the virtualenv Python path..."
 python scripts/install_src_path.py
 

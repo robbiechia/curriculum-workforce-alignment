@@ -30,6 +30,8 @@ source .venv/bin/activate
 streamlit run streamlit_dashboard.py
 ```
 
+`setup.sh` installs a pinned local Streamlit version for development. On Streamlit Community Cloud, `requirements.txt` intentionally omits `streamlit` so the platform can use its preinstalled compatible build.
+
 ---
 
 ## Repository layout
