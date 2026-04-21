@@ -14,6 +14,14 @@ outputs/
 *.csv
 *.parquet
 *.xlsx
+!app_data/
+!app_data/*.parquet
+!cache/
+cache/*
+!cache/embeddings/
+cache/embeddings/*
+!cache/embeddings/jobs_*.npz
+!cache/embeddings/modules_*.npz
 
 # Python cache
 __pycache__/

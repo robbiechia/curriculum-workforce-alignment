@@ -17,6 +17,7 @@ from module_readiness.llm import OpenAICompatibleLLMClient, explain_job_query
 
 
 APP_ROOT = Path(__file__).resolve().parents[1]
+APP_DATA_DIR = APP_ROOT / "app_data"
 OUTPUTS_DIR = APP_ROOT / "outputs"
 
 FACULTY_FULL = {
@@ -53,7 +54,7 @@ def _skill_pills(skills: list[str], color: str = "#e8eaf6", text_color: str = "#
 
 @st.cache_resource(show_spinner=False)
 def _get_query_backend():
-    return load_dashboard_query_backend(output_dir=OUTPUTS_DIR)
+    return load_dashboard_query_backend(data_dirs=(APP_DATA_DIR, OUTPUTS_DIR))
 
 
 @st.cache_resource(show_spinner=False)

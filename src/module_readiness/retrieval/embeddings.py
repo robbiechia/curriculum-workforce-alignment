@@ -30,11 +30,26 @@ class SentenceEmbeddingService:
     def __post_init__(self) -> None:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.backend = "sentence-transformers"
-        self.model = SentenceTransformer(self.model_name)
+        self.model: SentenceTransformer | None = None
+        self.model_load_error: str | None = None
         self.dimension = 384
-        dim = getattr(self.model, "get_sentence_embedding_dimension", None) # retrieve embedding dimension for the SentenceTransformer model
+
+    def _ensure_model(self) -> SentenceTransformer:
+        if self.model is not None:
+            return self.model
+        if self.model_load_error is not None:
+            raise RuntimeError(self.model_load_error)
+
+        try:
+            self.model = SentenceTransformer(self.model_name)
+        except Exception as exc:  # pragma: no cover - exercised in deployment, not unit tests
+            self.model_load_error = f"Failed to load embedding model '{self.model_name}': {exc}"
+            raise RuntimeError(self.model_load_error) from exc
+
+        dim = getattr(self.model, "get_sentence_embedding_dimension", None)
         if callable(dim):
             self.dimension = int(dim())
+        return self.model
 
     def _cache_key(self, texts: Sequence[str], namespace: str) -> str:
         # The namespace keeps cached job/module/query embeddings distinct even if the
@@ -77,7 +92,14 @@ class SentenceEmbeddingService:
             except Exception:
                 pass
 
-        embeddings = self.model.encode(
+        try:
+            model = self._ensure_model()
+        except RuntimeError:
+            # A zero matrix keeps the retrieval engine functional in BM25-only
+            # fallback mode when the embedding model cannot be loaded remotely.
+            return np.zeros((len(texts), self.dimension), dtype=float)
+
+        embeddings = model.encode(
             sentences            = texts,
             batch_size           = int(self.batch_size),
             show_progress_bar    = True,

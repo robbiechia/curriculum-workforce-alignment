@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import sys
 import ast
-import csv
 import re
 from pathlib import Path
 from typing import Iterable
@@ -47,6 +46,7 @@ from module_readiness.analysis.role_banding import (
     classify_role_score,
     role_band_lookup,
 )
+from module_readiness.runtime_tables import candidate_runtime_dirs, read_runtime_table
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +54,9 @@ from module_readiness.analysis.role_banding import (
 # ---------------------------------------------------------------------------
 
 APP_ROOT = Path(__file__).resolve().parent
+APP_DATA_DIR = APP_ROOT / "app_data"
 OUTPUTS_DIR = APP_ROOT / "outputs"
+RUNTIME_DIRS = candidate_runtime_dirs(APP_DATA_DIR, OUTPUTS_DIR)
 
 ROLE_ORDER = [
     "Software Engineering", "Data Science / Analytics", "AI / ML",
@@ -81,47 +83,45 @@ COMMON_TYPES = re.compile(
 PRIMARY_TYPES = re.compile(r"Primary Major Requirements", re.IGNORECASE)
 
 
-# ---------------------------------------------------------------------------
-# Data loading
-# ---------------------------------------------------------------------------
-
-def _read_csv(path: Path) -> pd.DataFrame:
-    try:
-        df = pd.read_csv(path, keep_default_na=False)
-    except pd.errors.ParserError:
-        with path.open(newline="", encoding="utf-8-sig") as fh:
-            rows = list(csv.reader(fh, skipinitialspace=True))
-        if not rows:
-            return pd.DataFrame()
-        header = [str(v).strip() for v in rows[0]]
-        body = [
-            (([str(v).strip() for v in row]) + [""] * len(header))[:len(header)]
-            for row in rows[1:]
-        ]
-        df = pd.DataFrame(body, columns=header)
-    df.columns = [str(c).strip() for c in df.columns]
-    for col in df.select_dtypes(include=["object", "string"]).columns:
-        df[col] = df[col].map(lambda v: str(v).strip())
-    return df
-
-
 def _parse_list(s: object) -> list[str]:
-    if not s or str(s).strip() in ("", "nan"):
+    if isinstance(s, (list, tuple, set)):
+        return [str(item).strip().lower() for item in s if str(item).strip()]
+    if hasattr(s, "tolist") and not isinstance(s, (str, bytes)):
+        converted = s.tolist()
+        if isinstance(converted, list):
+            return _parse_list(converted)
+    if s is None:
+        return []
+    if pd.api.types.is_scalar(s) and pd.isna(s):
+        return []
+    text = str(s).strip()
+    if text.lower() in ("", "nan", "none"):
         return []
     try:
-        result = ast.literal_eval(str(s))
+        result = ast.literal_eval(text)
         if isinstance(result, list):
             return [str(x).strip().lower() for x in result if str(x).strip()]
     except Exception:
         pass
-    return [x.strip().lower() for x in str(s).split(";") if x.strip()]
+    return [x.strip().lower() for x in text.split(";") if x.strip()]
 
 
 def _parse_codes(s: object) -> list[str]:
     """Parse semicolon-separated module codes."""
-    if not s or str(s).strip() in ("", "nan"):
+    if isinstance(s, (list, tuple, set)):
+        return [str(code).strip() for code in s if str(code).strip()]
+    if hasattr(s, "tolist") and not isinstance(s, (str, bytes)):
+        converted = s.tolist()
+        if isinstance(converted, list):
+            return _parse_codes(converted)
+    if s is None:
         return []
-    return [c.strip() for c in str(s).split(";") if c.strip()]
+    if pd.api.types.is_scalar(s) and pd.isna(s):
+        return []
+    text = str(s).strip()
+    if text.lower() in ("", "nan", "none"):
+        return []
+    return [c.strip() for c in text.split(";") if c.strip()]
 
 
 def _coerce_bool(df: pd.DataFrame, cols: Iterable[str]) -> pd.DataFrame:
@@ -135,29 +135,29 @@ def _coerce_bool(df: pd.DataFrame, cols: Iterable[str]) -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def _load_all() -> dict:
     # Core outputs
-    mm = _read_csv(OUTPUTS_DIR / "degree_module_map.csv")
+    mm = read_runtime_table("degree_module_map", RUNTIME_DIRS)
     mm = _coerce_bool(mm, ["is_unrestricted_elective", "module_found"])
     mm["is_common"] = mm["curriculum_type"].str.contains(COMMON_TYPES, na=False)
     mm["is_primary"] = mm["curriculum_type"].str.contains(PRIMARY_TYPES, na=False)
 
-    summary = _read_csv(OUTPUTS_DIR / "degree_summary.csv")
-    mrs = _read_csv(OUTPUTS_DIR / "module_role_scores.csv")
+    summary = read_runtime_table("degree_summary", RUNTIME_DIRS)
+    mrs = read_runtime_table("module_role_scores", RUNTIME_DIRS)
     mrs["role_score"] = pd.to_numeric(mrs["role_score"], errors="coerce").fillna(0.0)
     mrs["evidence_job_count"] = pd.to_numeric(mrs["evidence_job_count"], errors="coerce").fillna(0.0)
 
-    prec = _read_csv(OUTPUTS_DIR / "module_preclusions.csv")
+    prec = read_runtime_table("module_preclusions", RUNTIME_DIRS)
     prec = _coerce_bool(prec, ["has_wildcard"])
 
-    mods = _read_csv(OUTPUTS_DIR / "modules_clean.csv")
+    mods = read_runtime_table("modules_clean", RUNTIME_DIRS)
     mods["tech_skills"] = mods["technical_skills"].map(_parse_list)
     mods["soft_skills_parsed"] = mods["soft_skills"].map(_parse_list)
 
-    jrm = _read_csv(OUTPUTS_DIR / "job_role_map.csv")
-    jobs = _read_csv(OUTPUTS_DIR / "jobs_clean.csv")
+    jrm = read_runtime_table("job_role_map", RUNTIME_DIRS)
+    jobs = read_runtime_table("jobs_clean", RUNTIME_DIRS)
     jobs["tech_list"] = jobs["technical_skills"].map(_parse_list)
     jobs["soft_list"] = jobs["soft_skills"].map(_parse_list)
 
-    dss = _read_csv(OUTPUTS_DIR / "degree_skill_supply.csv")
+    dss = read_runtime_table("degree_skill_supply", RUNTIME_DIRS)
     dss["supply_score"] = pd.to_numeric(dss["supply_score"], errors="coerce").fillna(0.0)
 
     return dict(mm=mm, summary=summary, mrs=mrs, prec=prec, mods=mods,
@@ -1976,10 +1976,21 @@ def _render_module_details(
         )
 
     def _role_badges(roles: object) -> str:
-        if not roles or str(roles).strip() in ("", "nan"):
+        if isinstance(roles, (list, tuple)):
+            role_items = list(roles)
+        elif hasattr(roles, "tolist") and not isinstance(roles, (str, bytes)):
+            converted = roles.tolist()
+            role_items = converted if isinstance(converted, list) else []
+        elif roles is None or (pd.api.types.is_scalar(roles) and pd.isna(roles)):
+            role_items = []
+        else:
+            text = str(roles).strip()
+            role_items = [] if text.lower() in ("", "nan", "none") else []
+
+        if not role_items:
             return '<span style="font-size:0.74em;color:#999">No role-family scores available.</span>'
         badges = []
-        for item in roles if isinstance(roles, list) else []:
+        for item in role_items:
             if not isinstance(item, (list, tuple)) or len(item) < 2:
                 continue
             role_name = str(item[0])

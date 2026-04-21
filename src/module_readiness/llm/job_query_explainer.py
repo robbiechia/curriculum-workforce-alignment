@@ -33,11 +33,20 @@ def _truncate(text: object, limit: int = 220) -> str:
 
 
 def _as_list(value: object) -> list[str]:
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple, set)):
         return [str(item).strip() for item in value if str(item).strip()]
-    if not value or str(value).strip() in {"", "nan"}:
+    if hasattr(value, "tolist") and not isinstance(value, (str, bytes)):
+        converted = value.tolist()
+        if isinstance(converted, list):
+            return _as_list(converted)
+    if value is None:
         return []
-    return [item.strip() for item in str(value).split(";") if item.strip()]
+    if pd.api.types.is_scalar(value) and pd.isna(value):
+        return []
+    text = str(value).strip()
+    if text.lower() in {"", "nan", "none"}:
+        return []
+    return [item.strip() for item in text.split(";") if item.strip()]
 
 
 def _top_terms(frame: pd.DataFrame, column: str, limit: int = 8) -> list[str]:

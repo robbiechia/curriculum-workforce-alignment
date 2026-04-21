@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-import csv
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
@@ -11,41 +10,31 @@ import pandas as pd
 from ..config import PipelineConfig
 from ..orchestration import ModuleReadinessState
 from ..retrieval import HybridRetrievalEngine, build_retrieval_artifacts
+from ..runtime_tables import candidate_runtime_dirs, read_runtime_table
 from .query import ModuleReadinessQueryAPI
 
 
-def _read_csv(path: Path) -> pd.DataFrame:
-    try:
-        df = pd.read_csv(path, keep_default_na=False)
-    except pd.errors.ParserError:
-        with path.open(newline="", encoding="utf-8-sig") as fh:
-            rows = list(csv.reader(fh, skipinitialspace=True))
-        if not rows:
-            return pd.DataFrame()
-        header = [str(v).strip() for v in rows[0]]
-        body = [
-            (([str(v).strip() for v in row]) + [""] * len(header))[: len(header)]
-            for row in rows[1:]
-        ]
-        df = pd.DataFrame(body, columns=header)
-    df.columns = [str(c).strip() for c in df.columns]
-    for col in df.select_dtypes(include=["object", "string"]).columns:
-        df[col] = df[col].map(lambda v: str(v).strip())
-    return df
-
-
 def _parse_list(value: object) -> list[str]:
-    if not value or str(value).strip() in {"", "nan"}:
-        return []
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple, set)):
         return [str(item).strip().lower() for item in value if str(item).strip()]
+    if hasattr(value, "tolist") and not isinstance(value, (str, bytes)):
+        converted = value.tolist()
+        if isinstance(converted, list):
+            return _parse_list(converted)
+    if value is None:
+        return []
+    if pd.api.types.is_scalar(value) and pd.isna(value):
+        return []
+    text = str(value).strip()
+    if text.lower() in {"", "nan", "none"}:
+        return []
     try:
-        parsed = ast.literal_eval(str(value))
+        parsed = ast.literal_eval(text)
         if isinstance(parsed, list):
             return [str(item).strip().lower() for item in parsed if str(item).strip()]
     except Exception:
         pass
-    return [item.strip().lower() for item in str(value).split(";") if item.strip()]
+    return [item.strip().lower() for item in text.split(";") if item.strip()]
 
 
 def _coerce_bool(df: pd.DataFrame, cols: Iterable[str]) -> pd.DataFrame:
@@ -343,36 +332,40 @@ class DashboardQueryBackend:
 def load_dashboard_query_backend(
     *,
     output_dir: Path | None = None,
+    data_dirs: Sequence[Path] | None = None,
     config: PipelineConfig | None = None,
 ) -> DashboardQueryBackend:
     """Build a DashboardQueryBackend from pipeline output CSVs.
 
-    Reads all required tables from the ``outputs/`` directory, coerces types,
-    then rebuilds the retrieval artifacts (BM25 index + embeddings).  The
-    embedding step hits the disk cache so it's fast after the first run.
+    Reads all required tables from the runtime app bundle, coerces types, then
+    rebuilds the retrieval artifacts (BM25 index + embeddings). The embedding
+    step hits the disk cache so it's fast after the first run.
 
     This is the intended entry point for the Streamlit app and any tooling
     that wants query access without re-running the full pipeline.
 
     Args:
-        output_dir: Path to the directory containing pipeline CSVs.  Defaults
-                    to ``config.output_dir``.
+        output_dir: Backward-compatible fallback directory containing runtime
+                    tables. Defaults to ``config.output_dir`` when ``data_dirs``
+                    is not provided.
+        data_dirs: Ordered candidate directories to search for runtime tables.
+                   Use this to prefer ``app_data/`` over ``outputs/``.
         config: Pipeline config to use for retrieval parameters.  Defaults to
                 ``PipelineConfig.from_file()``.
     """
     config = config or PipelineConfig.from_file()
-    output_dir = (output_dir or config.output_dir).resolve()
+    resolved_data_dirs = candidate_runtime_dirs(*(data_dirs or (output_dir or config.output_dir,)))
 
-    jobs = _read_csv(output_dir / "jobs_clean.csv")
-    modules = _read_csv(output_dir / "modules_clean.csv")
-    module_role_scores = _read_csv(output_dir / "module_role_scores.csv")
-    module_summary = _read_csv(output_dir / "module_summary.csv")
-    module_job_evidence = _read_csv(output_dir / "module_job_evidence.csv")
+    jobs = read_runtime_table("jobs_clean", resolved_data_dirs)
+    modules = read_runtime_table("modules_clean", resolved_data_dirs)
+    module_role_scores = read_runtime_table("module_role_scores", resolved_data_dirs)
+    module_summary = read_runtime_table("module_summary", resolved_data_dirs)
+    module_job_evidence = read_runtime_table("module_job_evidence", resolved_data_dirs)
     degree_module_map = _coerce_bool(
-        _read_csv(output_dir / "degree_module_map.csv"),
+        read_runtime_table("degree_module_map", resolved_data_dirs),
         ["is_unrestricted_elective", "module_found"],
     )
-    degree_summary = _read_csv(output_dir / "degree_summary.csv")
+    degree_summary = read_runtime_table("degree_summary", resolved_data_dirs)
 
     jobs["experience_years"] = pd.to_numeric(jobs["experience_years"], errors="coerce").fillna(9999)
     for col in ["technical_skills", "soft_skills"]:

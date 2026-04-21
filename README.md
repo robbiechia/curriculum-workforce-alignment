@@ -72,8 +72,9 @@ DSA4264-text-group-4/
 ├── notebooks/
 │   ├── eda.ipynb                 # Exploratory data analysis
 │   └── report_visualisations.ipynb  # Charts for the technical report
+├── app_data/                     # Slim runtime bundle committed for Streamlit deployment
 ├── outputs/                      # Pipeline output CSVs (gitignored)
-├── cache/                        # SHA-256 keyed embedding cache (gitignored)
+├── cache/                        # Embedding cache; corpus .npz files can be committed for deployment
 ├── reports/                      # Auto-generated markdown reports
 ├── docs/
 │   └── current/                  # Architecture, runbook, ADRs, glossary
@@ -108,6 +109,14 @@ This runs all stages — ingestion, role assignment, skill taxonomy, module cons
 
 A full run takes 10–20 minutes on a laptop CPU; the `--quick` flag brings this down to 2–3 minutes by considering a smaller subset of modules.
 
+To refresh the lightweight deployment bundle after a completed pipeline run, execute:
+
+```bash
+python scripts/build_app_data_bundle.py
+```
+
+This writes a slim parquet bundle to `app_data/` for Streamlit Community Cloud. The dashboard prefers `app_data/` at runtime and falls back to `outputs/` locally.
+
 ## 4. Generating MOE review charts
 
 To produce the static artefact images for MOE officer review, run from the project root:
@@ -134,4 +143,4 @@ The dashboard has two pages:
 - **Curriculum Readiness** (main page): Module and degree alignment analysis, skill gap view, role distribution charts.
 - **Career Query Assistant** (`pages/1_Career Query Assistant.py`): Natural-language job search — type a role description and get matching early-career jobs and relevant NUS modules.
 
-The dashboard reads directly from the `outputs/` CSVs. Run the pipeline first if any of those files are missing.
+The dashboard reads from `app_data/` first and falls back to `outputs/` when the deployment bundle is absent. This lets Streamlit Community Cloud serve the app without shipping the full pipeline artifacts.
